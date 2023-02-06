@@ -1,8 +1,3 @@
-# frozen_string_literal: true
-
 require_relative "sisjwt/version"
-
-module Sisjwt
-  class Error < StandardError; end
-  # Your code goes here...
-end
+require_relative "sisjwt/sis_jwt_options"
+require_relative "sisjwt/sis_jwt"

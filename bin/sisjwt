@@ -1,0 +1,187 @@
+#!/usr/bin/env ruby
+require "active_support/core_ext"
+require "bundler"
+require "date"
+require "optparse"
+require 'rubygems'
+
+Bundler.require(:default, :development)
+require "sisjwt"
+
+def fatal!(msg = "unspecified error, exiting.", ec: 1)
+  $stderr.puts "FATAL: #{msg}"
+  exit ec
+end
+
+def warn(msg)
+  $stderr.puts "WARN : #{msg}"
+end
+
+class App
+  attr_accessor :strict_mode, :jwt_opts
+  # attr_accessor :token_type, :key_alg, :key, :aws_region
+  # attr_accessor :token_lifetime, :iss, :aud, :iat, :exp
+  (
+    %i(token_type key_alg key_id aws_region token_lifetime iss aud iat exp) +
+    %i(token_type= key_alg= key_id= aws_region= token_lifetime= iss= aud= iat= exp=) +
+    %i(validate valid? errors)
+  ).each do |m|
+    delegate m, to: :jwt_opts
+  end
+
+  def initialize
+    # require 'pry'; binding.pry
+    @jwt_opts = ::Sisjwt::SisJwtOptions.defaults
+    @strict_mode = true
+    puts "Is Prod: #{production?}"
+    # token_type = production? ? "SISKMS" : "SISKMSd"
+    # @key_alg = "ECDSA_SHA_256"
+    # @key = production? ? ENV['SIGNING_KMS_KEY_ARN'] : ENV.fetch('SISKMS_DEV_SECRET', 's3cr37')
+    # @aws_region = ENV.fetch('SIGNING_KMS_KEY_REGION', ENV.fetch('AWS_REGION', 'us-west-2'))
+    # @token_lifetime = 3_600
+    # @iss = ENV.fetch("SISKMS_ISS", "SIS")
+    # @aud = ENV.fetch("SISKMS_AUD", "SIS")
+    # @iat = nil
+    # @exp = nil
+  end
+
+  def to_h
+    {
+      production: production?,
+      token_type: token_type,
+      key_alg: key_alg,
+      key_id: key_id,
+      aws_region: aws_region,
+      token_lifetime: token_lifetime,
+      iss: iss,
+      aud: aud,
+      iat: iat,
+      exp: exp,
+    }
+  end
+
+  def production?
+    @rails_prod ||= ENV['RAILS_ENV'] == "production"
+  end
+
+  # Transforms array like:
+  #    [ "k=v", "val", "other=opt" ]
+  # into
+  #    { "k" => "v", "val" => nil, "other" => "opt" }
+  def array_to_hash(array)
+    array.map do |v|
+      k,v = v.split("=", 2)
+      [k.strip, v&.strip]
+    end.to_h.with_indifferent_access
+  end
+
+  def generate_token(args = ARGV)
+    puts "GEN TOKEN"
+    args = array_to_hash(args) if args.is_a?(Array)
+
+    puts "config: #{to_h}"
+    puts "  args: #{args}"
+
+    sisjwt = ::Sisjwt::SisJwt.new(@jwt_opts)
+  end
+
+  ################################################################################
+  # Option Parsing
+  ################################################################################
+
+  # Creates a new App instance from given options
+  def self.from_options!(options=ARGV)
+    app = App.new
+
+    OptionParser.new do |opts|
+      opts.banner = "sisjwt - Sign in Solutions JWT Generator"
+
+      opts.on("--[no-]strict-mode", "Turn off strict mode to allow specifying invalid values, default strict: #{app.strict_mode}") do |v|
+        app.strict_mode = v
+      end
+
+      opts.on("-t", "--type=val", "Type of Token to Generate, default #{app.token_type}") do |v|
+        app.token_type = v
+      end
+
+      opts.on("-a", "--alg=val", "KMS Algorithm to use to sign the token, default #{app.key_alg}") do |v|
+        app.key_alg = v
+      end
+
+      opts.on("-r", "--region=val", "KMS Region to use to sign the token, default #{app.aws_region}") do |v|
+        app.aws_region = v
+      end
+
+      opts.on("-e", "--expires=secs", OptionParser::DecimalInteger, "Number of seconds that the key should be valid for (used to calculate `exp` value), default #{app.token_lifetime}s") do |v|
+        app.aws_region = v.to_i
+      end
+
+      opts.on "--aud=VAL", "Token AUDience (Should be SIS company acronym: SIE, SIC, etc), default #{app.aud}" do |v|
+        app.aud = v
+      end
+
+      opts.on("--iss=VAL", "Token ISSuer (Should be SIS company acronym: SIE, SIC, etc), default #{app.iss}") do |v|
+        app.iss = v
+      end
+
+      opts.on("--exp=VAL", "Token EXPiration, unix time, default #{app.exp}") do |v|
+        app.exp = v
+      end
+
+      opts.on("--ttl=VAL", "Token Time To Live, seconds, default #{app.token_lifetime}s") do |v|
+        app.exp = v
+      end
+    end.parse!(options)
+    app.validate
+    app
+  end
+end
+
+################################################################################
+# Main
+################################################################################
+app = App.from_options!
+
+if ARGV.empty?
+  app.help
+  exit 1
+end
+
+# Validation
+unless app.valid?
+  msg = %w(Errors:)
+  app.errors.messages.each do |attr, errors|
+    errors.each do |error|
+      msg << "\t#{attr} #{error}"
+    end
+  end
+
+  msg = msg.join("\n")
+
+  if app.strict_mode
+    fatal! msg
+  else
+    warn msg
+  end
+end
+
+# Command Processing
+if ARGV[0] == "debug"
+  puts "ARGS ->#{app.to_h}<-"
+  x=0
+  while arg=ARGV.shift
+    puts "Shift[#{x}]->#{arg}"
+    x += 1
+  end
+  puts "\nValid: #{app.valid?}"
+  # binding.pry
+  exit 127
+end
+
+cmd = ARGV.shift
+case cmd
+when "gen"
+  app.generate_token
+else
+  fatal! "Unknown command: #{cmd}"
+end
