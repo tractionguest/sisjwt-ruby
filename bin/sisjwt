@@ -61,7 +61,7 @@ class App
   end
 
   def production?
-    @rails_prod ||= ENV['RAILS_ENV'] == "production"
+    @jwt_opts.class.production_env?
   end
 
   # Transforms array like:

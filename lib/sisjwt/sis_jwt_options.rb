@@ -1,8 +1,8 @@
 require 'active_model'
 
 module Sisjwt
-  TOKEN_TYPE_V1 = "SISJWT1.0".freeze
-  TOKEN_TYPE_DEV = "SISJWTd".freeze
+  TOKEN_TYPE_V1 = "SISKMS1.0".freeze
+  TOKEN_TYPE_DEV = "SISKMSd".freeze
 
   class SisJwtOptions
     include ActiveModel::Validations
@@ -62,17 +62,17 @@ module Sisjwt
     end
 
     def self.defaults
-      is_prod = ENV['RAILS_ENV'] == 'production'
       SisJwtOptions.new.tap do |opts|
-        opts.token_type = is_prod ? TOKEN_TYPE_V1 : TOKEN_TYPE_DEV
+        opts.token_type = production_env? ? TOKEN_TYPE_V1 : TOKEN_TYPE_DEV
 
+        opts.aws_region = ENV.fetch("AWS_PROFILE", production_env? ? '' : "dev")
         opts.aws_region = ENV.fetch("AWS_REGION", "us-west-2")
         opts.key_id = ENV["SISJWT_KEY_ID"]
-        opts.key_alg = ENV.fetch("SISJWT_KEY_ALG", "ECDSA_SHA_256")
+        opts.key_alg = ENV.fetch("SISJWT_KEY_ALG", "RSASSA_PKCS1_V1_5_SHA_256")
         opts.iss = ENV.fetch("SISJWT_ISS", "SIS")
         opts.aud = ENV.fetch("SISJWT_AUD", "SIS")
 
-        opts.token_lifetime = (is_prod ? 1.minute : 1.hour).to_i
+        opts.token_lifetime = (production_env? ? 1.minute : 1.hour).to_i
         opts.iat = nil
         opts.exp = nil
 

@@ -8,15 +8,11 @@ module Sisjwt::Algo
 
     # SIG_ALG = 'ECDSA_SHA_256'.freeze
     # SIG_ALG = 'RSASSA_PSS_SHA_256'.freeze
-    SIG_ALG = 'RSASSA_PKCS1_V1_5_SHA_256'.freeze
+    # SIG_ALG = 'RSASSA_PKCS1_V1_5_SHA_256'.freeze
 
     def initialize(options)
       @options = options
       @options.validate
-
-      # TODO these shold not be static
-      @options.aws_profile = "dev"
-      @options.key_alg = SIG_ALG
 
       #Rails.logger.info "[#{alg}] initialized kms_configured?=#{@options.kms_configured?}"
       if !@options.valid?
@@ -63,7 +59,7 @@ module Sisjwt::Algo
     end
 
     def aws_configured?
-      @options.kms_configured? && @options.valid?
+      @options.kms_configured? && @options.valid? && @options.production_config?
     end
 
     private
