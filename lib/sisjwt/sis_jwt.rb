@@ -1,3 +1,5 @@
+require 'jwt'
+
 module Sisjwt
   class Error < StandardError; end
 
@@ -17,21 +19,23 @@ module Sisjwt
 
       # Make sure that we tag the token with our issuer so that we can
       # easily decode it in the future.
-      payload["iss"] = options.issuer
-      payload["iat"] = Time.now.to_f
-      payload["exp"] = Time.now.to_f + options.exp_time
+      payload["iss"] = options.iss
+      payload["aud"] = options.aud
+      payload["iat"] = options.iat unless payload["iat"].is_a?(Numeric)
+      payload["exp"] = options.exp unless payload["exp"].is_a?(Numeric)
 
       headers = {
+        alg: options.token_type,
         kid: options.key_id,
         AWS_ALG: options.key_alg,
       }
 
-      JWT.encode(payload, jwt_secret, jwt_alg, headers = headers)
+      ::JWT.encode(payload, jwt_secret, jwt_alg, headers = headers)
     end
 
     def decode(token)
       alg = jwt_alg
-      JWT.decode(token, jwt_secret, true, { algorithm: alg }) do |headers, payload|
+      ::JWT.decode(token, jwt_secret, true, { algorithm: alg }) do |headers, payload|
         if alg.aws_configured?
           Rails.logger.info "[JwtKms] decode-findKey. aws_configured=true aws_alg=#{headers['AWS_ALG']} key=#{payload['iss']}"
           [
@@ -52,8 +56,7 @@ module Sisjwt
     end
 
     def jwt_alg
-      # return jwt_alg unless jwt_alg =~ /^SISKMSd?$/
-      @jwt_alg ||= SisKmsJwtAlgo.new(key_id: key_id, kms_enabled: @kms_enabled, kms_required: @kms_enabled)
+      @jwt_alg ||= Sisjwt::Algo::SisJwtV1.new(@options)
     end
   end
 end

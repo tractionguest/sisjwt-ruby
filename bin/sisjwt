@@ -24,7 +24,7 @@ class App
   (
     %i(token_type key_alg key_id aws_region token_lifetime iss aud iat exp) +
     %i(token_type= key_alg= key_id= aws_region= token_lifetime= iss= aud= iat= exp=) +
-    %i(validate valid? errors)
+    %i(validate valid? errors error_messages)
   ).each do |m|
     delegate m, to: :jwt_opts
   end
@@ -83,6 +83,8 @@ class App
     puts "  args: #{args}"
 
     sisjwt = ::Sisjwt::SisJwt.new(@jwt_opts)
+    token = sisjwt.encode(args)
+    puts token
   end
 
   ################################################################################
@@ -148,16 +150,7 @@ if ARGV.empty?
 end
 
 # Validation
-unless app.valid?
-  msg = %w(Errors:)
-  app.errors.messages.each do |attr, errors|
-    errors.each do |error|
-      msg << "\t#{attr} #{error}"
-    end
-  end
-
-  msg = msg.join("\n")
-
+if (msg = app.error_messages).present?
   if app.strict_mode
     fatal! msg
   else
