@@ -8,6 +8,25 @@ require 'rubygems'
 Bundler.require(:default, :development)
 require "sisjwt"
 
+VERBOSITY_LEVELS = {
+  0 => Logger::UNKNOWN,
+  1 => Logger::FATAL,
+  2 => Logger::ERROR,
+  3 => Logger::WARN,
+  4 => Logger::INFO,
+  5 => Logger::DEBUG,
+}.freeze
+
+def convert_verbosity_level_to_log_level(verb_level)
+  VERBOSITY_LEVELS[verb_level.to_i].to_i
+end
+
+def convert_log_level_to_verbosity_level(log_level)
+  verb_level, _ = VERBOSITY_LEVELS.detect { |_, v| v == log_level }
+  verb_level.to_i
+end
+
+
 class App
   attr_accessor :strict_mode, :jwt_opts, :logger
   # attr_accessor :token_type, :key_alg, :key, :aws_region
@@ -21,20 +40,10 @@ class App
   end
 
   def initialize(logger: nil)
-    # require 'pry'; binding.pry
     @jwt_opts = ::Sisjwt::SisJwtOptions.defaults(mode: :verify)
     @strict_mode = true
     @logger = logger || Logger.new($stderr, level: :warn)
     @logger.debug "Is Prod: #{production?}"
-    # token_type = production? ? "SISKMS" : "SISKMSd"
-    # @key_alg = "ECDSA_SHA_256"
-    # @key = production? ? ENV['SIGNING_KMS_KEY_ARN'] : ENV.fetch('SISKMS_DEV_SECRET', 's3cr37')
-    # @aws_region = ENV.fetch('SIGNING_KMS_KEY_REGION', ENV.fetch('AWS_REGION', 'us-west-2'))
-    # @token_lifetime = 3_600
-    # @iss = ENV.fetch("SISKMS_ISS", "SIS")
-    # @aud = ENV.fetch("SISKMS_AUD", "SIS")
-    # @iat = nil
-    # @exp = nil
   end
 
   def to_h
@@ -96,7 +105,6 @@ class App
     data = sisjwt.verify(token)
 
     # We explictitly do not use logger here because we want it to goto stdout
-    # todo: ensure this is valid json
     $stdout.puts data.to_json
   end
 
@@ -108,11 +116,32 @@ class App
   def self.from_options!(options=ARGV, logger: nil)
     app = App.new(logger: logger)
 
-    OptionParser.new do |opts|
+    opt_parser = OptionParser.new do |opts|
       opts.banner = "sisjwt - Sign in Solutions JWT Generator"
 
       opts.on("--[no-]strict-mode", "Turn off strict mode to allow specifying invalid values, default strict: #{app.strict_mode}") do |v|
         app.strict_mode = v
+      end
+
+      opts.on("--verbose=LEVEL", "Set the verbosity level, 1-5. The higher the number the more verbose") do |v|
+        app.logger.level = convert_verbosity_level_to_log_level[v]
+        app.logger.warn "Verbosity FLAG; level=#{app.logger.level}"
+      end
+
+      default_vebosity_level = convert_log_level_to_verbosity_level(app.logger.level)
+      opts.on("-v", "Increase the verbosity. Can specify more than once. Default is -#{'v'*default_vebosity_level}; use --verbose if you wish to set a lower value.") do |v|
+        current_vebosity_level = convert_log_level_to_verbosity_level(app.logger.level)
+        if current_vebosity_level < VERBOSITY_LEVELS.size - 1
+          new_verbosity_level = current_vebosity_level + 1
+          app.logger.level = convert_verbosity_level_to_log_level(new_verbosity_level)
+          app.logger.debug "Verbosity FLAG; level=#{current_vebosity_level} logl=#{app.logger.level}"
+        else
+          app.logger.warn "NOT increasing verbosity; already at higest level=#{current_vebosity_level}"
+        end
+      end
+
+      opts.on("-s", "--silent", "Do not output any logs or anything that is not data.  Same as --verbose=0") do |v|
+        app.logger.level = Logger::UNKNOWN
       end
 
       opts.on("-t", "--type=val", "Type of Token to Generate, default #{app.token_type}") do |v|
@@ -146,9 +175,16 @@ class App
       opts.on("--ttl=VAL", "Token Time To Live, seconds, default #{app.token_lifetime}s") do |v|
         app.exp = v
       end
-    end.parse!(options)
+    end
+    opt_parser.parse!(options)
     app.validate
     app.logger.debug "Strict Mode: #{app.strict_mode}"
+    app.logger.debug " Opts Valid: #{app.valid?}"
+
+    if ARGV.empty?
+      $stderr.puts opt_parser.help
+      exit 2
+    end
     app
   end
 end
@@ -156,18 +192,13 @@ end
 ################################################################################
 # Main
 ################################################################################
-@logger = Logger.new($stderr, progname: 'sisjwt', level: :warn)
-@logger.debug!
-# @logger.level = 9
+default_verbosity_level = ENV.fetch("SISJWT_VERBOSE", convert_log_level_to_verbosity_level(Logger::WARN))
+@logger = Logger.new($stderr, progname: 'sisjwt', level: convert_verbosity_level_to_log_level(default_verbosity_level))
 
 app = App.from_options!(ARGV, logger: @logger)
 
-if ARGV.empty?
-  app.help
-  exit 1
-end
-
 # Validation
+@logger.fatal "TODO: signing validation iss=aud appears to be broken"
 if (msg = app.error_messages).present?
   if app.strict_mode
     @logger.fatal msg
@@ -191,7 +222,6 @@ if ARGV[0] == "debug"
 end
 
 cmd = ARGV.shift
-# binding.pry
 case cmd
 when "sign"
   @logger.progname = "#{@logger.progname}-#{cmd}"
