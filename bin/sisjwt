@@ -8,17 +8,33 @@ require 'rubygems'
 Bundler.require(:default, :development)
 require "sisjwt"
 
-def fatal!(msg = "unspecified error, exiting.", ec: 1)
-  $stderr.puts "FATAL: #{msg}"
-  exit ec
-end
-
-def warn(msg)
-  $stderr.puts "WARN : #{msg}"
-end
-
+# LOG_LEVEL_FATAL = 3
+# LOG_LEVEL_WARN  = 2
+# LOG_LEVEL_INFO  = 1
+# LOG_LEVEL_DBUG  = 0
+# @cur_log_level  = LOG_LEVEL_DBUG
+#
+# def fatal!(msg = "unspecified error, exiting.", ec: 1)
+#   $stderr.puts("FATAL: #{msg}") unless @cur_log_level < LOG_LEVEL_FATAL
+#   exit ec
+# end
+#
+# def warn(msg)
+#   return if @cur_log_level < LOG_LEVEL_WARN
+#   $stderr.puts "WARN : #{msg}"
+# end
+#
+# def info(msg)
+#   return if @cur_log_level < LOG_LEVEL_INFO
+#   $stderr.puts msg
+# end
+#
+# def debug(msg)
+#   return if @cur_log_level < LOG_LEVEL_DBUG
+#   $stderr.puts msg
+# end
 class App
-  attr_accessor :strict_mode, :jwt_opts
+  attr_accessor :strict_mode, :jwt_opts, :logger
   # attr_accessor :token_type, :key_alg, :key, :aws_region
   # attr_accessor :token_lifetime, :iss, :aud, :iat, :exp
   (
@@ -29,11 +45,12 @@ class App
     delegate m, to: :jwt_opts
   end
 
-  def initialize
+  def initialize(logger: nil)
     # require 'pry'; binding.pry
     @jwt_opts = ::Sisjwt::SisJwtOptions.defaults(mode: :verify)
     @strict_mode = true
-    puts "Is Prod: #{production?}"
+    @logger = logger || Logger.new($stderr, level: :warn)
+    @logger.debug "Is Prod: #{production?}"
     # token_type = production? ? "SISKMS" : "SISKMSd"
     # @key_alg = "ECDSA_SHA_256"
     # @key = production? ? ENV['SIGNING_KMS_KEY_ARN'] : ENV.fetch('SISKMS_DEV_SECRET', 's3cr37')
@@ -75,27 +92,32 @@ class App
     end.to_h.with_indifferent_access
   end
 
-  def generate_token(args = ARGV)
-    puts "GEN TOKEN"
+  def sign_token(args = ARGV)
+    @logger.info "SIGN TOKEN"
     args = array_to_hash(args) if args.is_a?(Array)
 
-    puts "config: #{to_h}"
-    puts "  args: #{args}"
+    @logger.debug "config: #{to_h}"
+    @logger.debug  "  args: #{args}"
 
     sisjwt = ::Sisjwt::SisJwt.new(@jwt_opts)
     token = sisjwt.encode(args)
-    puts token
+
+    # We explictitly do not use logger here because we want it to goto stdout
+    $stdout.puts token
   end
 
-  def decode_token(token = ARGV[0])
-    puts "DECODE TOKEN"
+  def verify_token(token = ARGV[0])
+    @logger.info "VERIFY TOKEN"
 
-    puts "config: #{to_h}"
-    puts "  token: #{token}"
+    @logger.debug "config: #{to_h}"
+    @logger.debug " token: #{token}"
 
     sisjwt = ::Sisjwt::SisJwt.new(@jwt_opts)
-    data = sisjwt.decode(token)
-    puts data.inspect
+    data = sisjwt.verify(token)
+
+    # We explictitly do not use logger here because we want it to goto stdout
+    # todo: ensure this is valid json
+    $stdout.puts data.to_json
   end
 
   ################################################################################
@@ -103,8 +125,8 @@ class App
   ################################################################################
 
   # Creates a new App instance from given options
-  def self.from_options!(options=ARGV)
-    app = App.new
+  def self.from_options!(options=ARGV, logger: nil)
+    app = App.new(logger: logger)
 
     OptionParser.new do |opts|
       opts.banner = "sisjwt - Sign in Solutions JWT Generator"
@@ -153,7 +175,9 @@ end
 ################################################################################
 # Main
 ################################################################################
-app = App.from_options!
+@logger = Logger.new($stderr, progname: 'sisjwt', level: :warn)
+
+app = App.from_options!(ARGV, logger: @logger)
 
 if ARGV.empty?
   app.help
@@ -163,31 +187,33 @@ end
 # Validation
 if (msg = app.error_messages).present?
   if app.strict_mode
-    fatal! msg
+    @logger.fatal msg
+    exit 1
   else
-    warn msg
+    @logger.warn msg
   end
 end
 
 # Command Processing
 if ARGV[0] == "debug"
-  puts "ARGS ->#{app.to_h}<-"
+  @logger.debug! # <-- Force logger into debug mode for debug output
+  @logger.debug "ARGS ->#{app.to_h}<-"
   x=0
   while arg=ARGV.shift
-    puts "Shift[#{x}]->#{arg}"
+    @logger.debug "Shift[#{x}]->#{arg}"
     x += 1
   end
-  puts "\nValid: #{app.valid?}"
-  # binding.pry
+  @logger.debug "\nValid: #{app.valid?}"
   exit 127
 end
 
 cmd = ARGV.shift
 case cmd
-when "gen"
-  app.generate_token
-when "decode"
-  app.decode_token
+when "sign"
+  app.sign_token
+when "verify"
+  app.verify_token
 else
-  fatal! "Unknown command: #{cmd}"
+  @logger.fatal "Unknown command: #{cmd}"
+  exit 1
 end
