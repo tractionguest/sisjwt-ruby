@@ -7,47 +7,48 @@ module Sisjwt
   class SisJwtOptions
     include ActiveModel::Validations
 
+    attr_reader :mode
     attr_accessor :token_type, :key_alg, :key_id, :aws_region, :aws_profile
     attr_accessor :token_lifetime, :iss, :aud, :iat, :exp
 
-    validates_presence_of :token_type
-    validates_presence_of :key_alg
-    validates_presence_of :key_id
-    validates_presence_of :aws_region
-    validates_presence_of :token_lifetime
-    validates_presence_of :iss
-    validates_presence_of :aud
+    def initialize(mode: :sign)
+      raise "invalid mode: #{mode}" unless %i[sign verify].include?(mode)
+      @mode = mode
+    end
 
-    # iss
+    validates_presence_of :token_type, if: -> { mode == :sign }
+    validates_presence_of :key_alg, if: -> { mode == :sign }
+    validates_presence_of :key_id, if: -> { mode == :sign }
+    validates_presence_of :aws_region, if: -> { mode == :sign }
+    validates_presence_of :token_lifetime, if: -> { mode == :sign }
+    validates_presence_of :iss, if: -> { mode == :sign }
+    validates_presence_of :aud, if: -> { mode == :sign }
+
+    # Signing Mode Validations
     validate do |rec|
+      next unless rec.mode == :sign
+
+      # iss/aud distinctness
       if rec.iss == rec.aud
         errors.add(:iss, "Can not be equal to AUDience!")
       end
-    end
 
-    # token_type
-    validate do |rec|
+      # exp
+      exp = rec.exp
+      if exp.present?
+        unless exp.is_a?(Numeric)
+          errors.add(:exp, "must be the unix timestamp the token expires")
+        end
+
+        if exp < rec.iat
+          errors.add(:exp, "can not be before the token was issued (iat)")
+        end
+      end
+
+      # token_type / config
       unless rec.token_type =~ /^SISKMSd?$/
         errors.add(:token_type, "is not a valid token type!")
       end
-    end
-
-    # exp
-    validate do |rec|
-      exp = rec.exp
-      next if exp.nil? # Default
-
-      unless exp.is_a?(Numeric)
-        errors.add(:exp, "must be the unix timestamp the token expires")
-      end
-
-      if exp < rec.iat
-        errors.add(:exp, "can not be before the token was issued (iat)")
-      end
-    end
-
-    # token_token / config
-    validate do |rec|
       if SisJwtOptions.production_env? && !rec.production_config?
         errors.add(:base, "Can not issue non-production tokens in a production environment")
       end
@@ -61,8 +62,8 @@ module Sisjwt
       @current ||= SisJwtOptions.defaults
     end
 
-    def self.defaults
-      SisJwtOptions.new.tap do |opts|
+    def self.defaults(mode: :sign)
+      SisJwtOptions.new(mode: mode).tap do |opts|
         opts.token_type = production_env? ? TOKEN_TYPE_V1 : TOKEN_TYPE_DEV
 
         opts.aws_region = ENV.fetch("AWS_PROFILE", production_env? ? '' : "dev")
@@ -76,7 +77,7 @@ module Sisjwt
         opts.iat = nil
         opts.exp = nil
 
-        opts.validate
+        opts.validate if mode == :sign
       end
     end
 

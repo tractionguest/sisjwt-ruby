@@ -37,13 +37,13 @@ module Sisjwt
       alg = jwt_alg
       ::JWT.decode(token, jwt_secret, true, { algorithm: alg }) do |headers, payload|
         if alg.aws_configured?
-          Rails.logger.info "[JwtKms] decode-findKey. aws_configured=true aws_alg=#{headers['AWS_ALG']} key=#{payload['iss']}"
+          # Rails.logger.info "[JwtKms] decode-findKey. aws_configured=true aws_alg=#{headers['AWS_ALG']} key=#{payload['iss']}"
           [
             headers['AWS_ALG'],
             payload["iss"],
           ].join(";")
         else
-          Rails.logger.info "[JwtKms] decode-findKey. aws_configured=false key=jwt_secret"
+          # Rails.logger.info "[JwtKms] decode-findKey. aws_configured=false key=jwt_secret"
           jwt_secret
         end
       end

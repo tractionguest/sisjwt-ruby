@@ -31,7 +31,7 @@ class App
 
   def initialize
     # require 'pry'; binding.pry
-    @jwt_opts = ::Sisjwt::SisJwtOptions.defaults
+    @jwt_opts = ::Sisjwt::SisJwtOptions.defaults(mode: :verify)
     @strict_mode = true
     puts "Is Prod: #{production?}"
     # token_type = production? ? "SISKMS" : "SISKMSd"
@@ -85,6 +85,17 @@ class App
     sisjwt = ::Sisjwt::SisJwt.new(@jwt_opts)
     token = sisjwt.encode(args)
     puts token
+  end
+
+  def decode_token(token = ARGV[0])
+    puts "DECODE TOKEN"
+
+    puts "config: #{to_h}"
+    puts "  token: #{token}"
+
+    sisjwt = ::Sisjwt::SisJwt.new(@jwt_opts)
+    data = sisjwt.decode(token)
+    puts data.inspect
   end
 
   ################################################################################
@@ -175,6 +186,8 @@ cmd = ARGV.shift
 case cmd
 when "gen"
   app.generate_token
+when "decode"
+  app.decode_token
 else
   fatal! "Unknown command: #{cmd}"
 end

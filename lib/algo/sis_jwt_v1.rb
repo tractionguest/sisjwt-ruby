@@ -1,4 +1,5 @@
 require 'aws-sdk-kms'
+require 'openssl'
 
 module Sisjwt::Algo
   class SisJwtV1
@@ -54,7 +55,12 @@ module Sisjwt::Algo
         end
         kms_verify(data, signature, aws_alg, key_arn)
       else
-        ::OpenSSL.secure_compare(sign(data: data, signing_key: verification_key), signature)
+        # This is NOT a secure operation and should use OpenSSL.secure_compare
+        # however as this is a symetric operation inteded only for dev use this
+        # doesn't matter and doesn't warrent a dependancy on rails just to have
+        # this already insecure operation be more secure.
+        shared_secret_sig = sign(data: data, signing_key: verification_key)
+        signature == shared_secret_sig
       end
     end
 
