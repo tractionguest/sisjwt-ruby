@@ -8,31 +8,6 @@ require 'rubygems'
 Bundler.require(:default, :development)
 require "sisjwt"
 
-# LOG_LEVEL_FATAL = 3
-# LOG_LEVEL_WARN  = 2
-# LOG_LEVEL_INFO  = 1
-# LOG_LEVEL_DBUG  = 0
-# @cur_log_level  = LOG_LEVEL_DBUG
-#
-# def fatal!(msg = "unspecified error, exiting.", ec: 1)
-#   $stderr.puts("FATAL: #{msg}") unless @cur_log_level < LOG_LEVEL_FATAL
-#   exit ec
-# end
-#
-# def warn(msg)
-#   return if @cur_log_level < LOG_LEVEL_WARN
-#   $stderr.puts "WARN : #{msg}"
-# end
-#
-# def info(msg)
-#   return if @cur_log_level < LOG_LEVEL_INFO
-#   $stderr.puts msg
-# end
-#
-# def debug(msg)
-#   return if @cur_log_level < LOG_LEVEL_DBUG
-#   $stderr.puts msg
-# end
 class App
   attr_accessor :strict_mode, :jwt_opts, :logger
   # attr_accessor :token_type, :key_alg, :key, :aws_region
@@ -99,7 +74,7 @@ class App
     @logger.debug "config: #{to_h}"
     @logger.debug  "  args: #{args}"
 
-    sisjwt = ::Sisjwt::SisJwt.new(@jwt_opts)
+    sisjwt = ::Sisjwt::SisJwt.new(@jwt_opts, logger: @logger)
     token = sisjwt.encode(args)
 
     # We explictitly do not use logger here because we want it to goto stdout
@@ -109,10 +84,15 @@ class App
   def verify_token(token = ARGV[0])
     @logger.info "VERIFY TOKEN"
 
+    if token == "-"
+      @logger.debug "Reading token from stdin..."
+      token = $stdin.read
+    end
+
     @logger.debug "config: #{to_h}"
     @logger.debug " token: #{token}"
 
-    sisjwt = ::Sisjwt::SisJwt.new(@jwt_opts)
+    sisjwt = ::Sisjwt::SisJwt.new(@jwt_opts, logger: @logger)
     data = sisjwt.verify(token)
 
     # We explictitly do not use logger here because we want it to goto stdout
@@ -168,6 +148,7 @@ class App
       end
     end.parse!(options)
     app.validate
+    app.logger.debug "Strict Mode: #{app.strict_mode}"
     app
   end
 end
@@ -176,6 +157,8 @@ end
 # Main
 ################################################################################
 @logger = Logger.new($stderr, progname: 'sisjwt', level: :warn)
+@logger.debug!
+# @logger.level = 9
 
 app = App.from_options!(ARGV, logger: @logger)
 
@@ -208,10 +191,13 @@ if ARGV[0] == "debug"
 end
 
 cmd = ARGV.shift
+# binding.pry
 case cmd
 when "sign"
+  @logger.progname = "#{@logger.progname}-#{cmd}"
   app.sign_token
 when "verify"
+  @logger.progname = "#{@logger.progname}-#{cmd}"
   app.verify_token
 else
   @logger.fatal "Unknown command: #{cmd}"

@@ -7,6 +7,13 @@ module Sisjwt
   class SisJwtOptions
     include ActiveModel::Validations
 
+    def self.valid_token_type(token_type)
+      [
+        TOKEN_TYPE_V1,
+        SisJwtOptions.production_env? ? nil : TOKEN_TYPE_DEV,
+      ].compact.include?(token_type)
+    end
+
     attr_reader :mode
     attr_accessor :token_type, :key_alg, :key_id, :aws_region, :aws_profile
     attr_accessor :token_lifetime, :iss, :aud, :iat, :exp
@@ -23,6 +30,13 @@ module Sisjwt
     validates_presence_of :token_lifetime, if: -> { mode == :sign }
     validates_presence_of :iss, if: -> { mode == :sign }
     validates_presence_of :aud, if: -> { mode == :sign }
+
+    # Common (sign/verify) validations
+    validate do |rec|
+      unless rec.valid_token_type?
+        errors.add(:token_type, "is invalid")
+      end
+    end
 
     # Signing Mode Validations
     validate do |rec|
@@ -49,7 +63,7 @@ module Sisjwt
       unless rec.token_type =~ /^SISKMSd?$/
         errors.add(:token_type, "is not a valid token type!")
       end
-      if SisJwtOptions.production_env? && !rec.production_config?
+      if SisJwtOptions.production_env? && !rec.production_token_type?
         errors.add(:base, "Can not issue non-production tokens in a production environment")
       end
 
@@ -118,6 +132,16 @@ module Sisjwt
       (iat + token_lifetime.to_i).to_i
     end
 
+    def key_id
+      return unless kms_configured?
+      @key_id
+    end
+
+    def key_alg
+      return unless kms_configured?
+      @key_alg
+    end
+
     def token_type
       return @token_type unless defined?(Rails)
 
@@ -128,16 +152,22 @@ module Sisjwt
       @token_type
     end
 
-    def production_config?
-      @token_type != TOKEN_TYPE_DEV
+    def production_token_type?
+      [
+        TOKEN_TYPE_V1,
+      ].include?(@token_type)
+    end
+
+    def valid_token_type?
+      self.class.valid_token_type(@token_type)
     end
 
     # Are all the values requried to make a KMS call configured?
     def kms_configured?
-      return true if token_type != TOKEN_TYPE_DEV &&
-        aws_region.present? &&
-        key_id.present? &&
-        key_alg.present?
+      return true if production_token_type? &&
+        @aws_region.present? &&
+        @key_id.present? &&
+        @key_alg.present?
     end
   end
 end

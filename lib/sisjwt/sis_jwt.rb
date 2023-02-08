@@ -10,7 +10,8 @@ module Sisjwt
       SisJwt.new(SisJwtOptions.current)
     end
 
-    def initialize(opts)
+    def initialize(opts, logger: nil)
+      @logger = logger || Logger.new($stderr, level: :unknown)
       @options = opts
     end
 
@@ -23,36 +24,45 @@ module Sisjwt
       payload["aud"] = options.aud
       payload["iat"] = options.iat unless payload["iat"].is_a?(Numeric)
       payload["exp"] = options.exp unless payload["exp"].is_a?(Numeric)
+      payload = payload.compact
 
       headers = {
         alg: options.token_type,
         kid: options.key_id,
         AWS_ALG: options.key_alg,
-      }
+      }.compact
+
+      @logger.debug do
+        info = wrap_headers_payload(headers, payload)
+        "SISJWT-encode: #{info.inspect}"
+      end
 
       ::JWT.encode(payload, jwt_secret, jwt_alg, headers = headers)
     end
 
     def verify(token)
       alg = jwt_alg
-      headers, payload = ::JWT.decode(token, jwt_secret, true, { algorithm: alg }) do |headers, payload|
-        if alg.aws_configured?
-          # Rails.logger.info "[JwtKms] decode-findKey. aws_configured=true aws_alg=#{headers['AWS_ALG']} key=#{payload['iss']}"
-          [
+      @logger.debug "SISJWT-verify: #{token}"
+      payload, headers = ::JWT.decode(token, jwt_secret, true, { algorithm: alg }) do |headers, payload|
+        if options.kms_configured?
+          kms_key_finder = [
             headers['AWS_ALG'],
-            payload["iss"],
+            headers['kid'],
           ].join(";")
+          @logger.debug do
+            info = wrap_headers_payload(headers, payload)
+            "SISJWT-verify-kms1: #{token} KMS: #{kms_key_finder}; #{info.inspect}"
+          end
+          kms_key_finder
         else
-          # Rails.logger.info "[JwtKms] decode-findKey. aws_configured=false key=jwt_secret"
+          @logger.debug "SISJWT-verify-dev: #{token} DEV"
           jwt_secret
         end
       end
 
-      # Return a hash
-      {
-        headers: headers,
-        payload: payload,
-      }
+      ret = wrap_headers_payload(headers, payload)
+      @logger.debug "SISJWT-verifed: #{ret.inspect}"
+      ret
     end
 
     private
@@ -62,7 +72,14 @@ module Sisjwt
     end
 
     def jwt_alg
-      @jwt_alg ||= Sisjwt::Algo::SisJwtV1.new(@options)
+      @jwt_alg ||= Sisjwt::Algo::SisJwtV1.new(@options, logger: @logger)
+    end
+
+    def wrap_headers_payload(headers, payload)
+      {
+        headers: headers,
+        payload: payload,
+      }
     end
   end
 end
