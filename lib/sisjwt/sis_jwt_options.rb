@@ -23,6 +23,22 @@ module Sisjwt
       @mode = mode
     end
 
+    def to_h
+      {
+        mode: mode,
+        token_type: token_type,
+        key_alg: key_alg,
+        key_id: key_id,
+        aws_region: aws_region,
+        aws_profile: aws_profile,
+        token_lifetime: token_lifetime,
+        iss: iss,
+        aud: aud,
+        iat: iat,
+        exp: exp,
+      }.compact
+    end
+
     validates_presence_of :token_type, if: -> { mode == :sign }
     validates_presence_of :key_alg, if: -> { mode == :sign }
     validates_presence_of :key_id, if: -> { mode == :sign }
@@ -97,7 +113,7 @@ module Sisjwt
 
     # Are we running in a production environment?
     def self.production_env?
-      if defined?(Rails)
+      if defined?(Rails) && Rails.respond_to?(:env)
         true if Rails.env.production?
       end
 
@@ -146,7 +162,7 @@ module Sisjwt
       return @token_type unless defined?(Rails)
 
       # Check to make sure that we are not returning weak dev tokens in prod envs
-      if Rails.env.production? && @token_type == TOKEN_TYPE_DEV
+      if self.class.production_env? && @token_type == TOKEN_TYPE_DEV
         raise Error("Can not issue dev tokens in production!")
       end
       @token_type
