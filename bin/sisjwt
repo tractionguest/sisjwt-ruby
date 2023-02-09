@@ -168,11 +168,11 @@ class App
         app.iss = v
       end
 
-      opts.on("--exp=VAL", "Token EXPiration, unix time, default #{app.exp}") do |v|
+      opts.on("--exp=VAL", OptionParser::DecimalInteger, "Token EXPiration, unix time, default #{app.exp}") do |v|
         app.exp = v
       end
 
-      opts.on("--ttl=VAL", "Token Time To Live, seconds, default #{app.token_lifetime}s") do |v|
+      opts.on("--ttl=VAL", OptionParser::DecimalInteger, "Token Time To Live, seconds, default #{app.token_lifetime}s") do |v|
         app.exp = v
       end
     end

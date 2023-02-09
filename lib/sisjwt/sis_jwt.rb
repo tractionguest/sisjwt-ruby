@@ -60,9 +60,14 @@ module Sisjwt
         end
       end
 
-      ret = wrap_headers_payload(headers, payload)
+      # ret = wrap_headers_payload(headers, payload)
+      ret = VerificationResult.new(headers, payload)
       @logger.debug "SISJWT-verifed: #{ret.inspect}"
       ret
+    rescue JWT::DecodeError => e
+      # We can rescue from this error and return a result
+      @logger.error("[SISJWT-verify]: [#{e.class}]#{e}")
+      return VerificationResult.new(nil, nil, error: e.message)
     end
 
     private
