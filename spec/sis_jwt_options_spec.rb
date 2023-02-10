@@ -206,7 +206,6 @@ module Sisjwt
 
     describe "validations" do
       subject { SisJwtOptions.defaults }
-      # let(:errors) { subject.errors }
 
       before do
         subject.token_type = TOKEN_TYPE_V1
@@ -221,54 +220,108 @@ module Sisjwt
         subject.errors.full_messages_for(key)
       end
 
-      context "of required attrs" do
-        it "key_alg" do
-          expect(error_msgs_for(:key_alg)).to be_empty
+      context "signing mode" do
+        context "of required attrs" do
+          it "key_alg" do
+            expect(error_msgs_for(:key_alg)).to be_empty
 
-          subject.key_alg = nil
+            subject.key_alg = nil
 
-          expect(error_msgs_for(:key_alg)).to_not be_empty
+            expect(error_msgs_for(:key_alg)).to_not be_empty
+          end
+
+          it "key_id" do
+            expect(error_msgs_for(:key_id)).to be_empty
+
+            subject.key_id = nil
+
+            expect(error_msgs_for(:key_id)).to_not be_empty
+          end
+
+          it "aws_region" do
+            expect(error_msgs_for(:aws_region)).to be_empty
+
+            subject.aws_region = nil
+
+            expect(error_msgs_for(:aws_region)).to_not be_empty
+          end
+
+          it "token_lifetime" do
+            expect(error_msgs_for(:token_lifetime)).to be_empty
+
+            subject.token_lifetime = nil
+
+            expect(error_msgs_for(:token_lifetime)).to_not be_empty
+          end
+
+          it "iss" do
+            expect(error_msgs_for(:iss)).to be_empty
+
+            subject.iss = nil
+
+            expect(error_msgs_for(:iss)).to_not be_empty
+          end
+
+          it "aud" do
+            expect(error_msgs_for(:aud)).to be_empty
+
+            subject.aud = nil
+
+            expect(error_msgs_for(:aud)).to_not be_empty
+          end
         end
 
-        it "key_id" do
-          expect(error_msgs_for(:key_id)).to be_empty
-
-          subject.key_id = nil
-
-          expect(error_msgs_for(:key_id)).to_not be_empty
-        end
-
-        it "aws_region" do
-          expect(error_msgs_for(:aws_region)).to be_empty
-
-          subject.aws_region = nil
-
-          expect(error_msgs_for(:aws_region)).to_not be_empty
-        end
-
-        it "token_lifetime" do
-          expect(error_msgs_for(:token_lifetime)).to be_empty
-
-          subject.token_lifetime = nil
-
-          expect(error_msgs_for(:token_lifetime)).to_not be_empty
-        end
-
-        it "iss" do
+        it "doesn't allow ISS==AUD" do
+          expect(error_msgs_for(:aud)).to be_empty
           expect(error_msgs_for(:iss)).to be_empty
 
-          subject.iss = nil
+          subject.iss = subject.aud
 
+          expect(error_msgs_for(:aud)).to be_empty
           expect(error_msgs_for(:iss)).to_not be_empty
         end
 
-        it "aud" do
-          expect(error_msgs_for(:aud)).to be_empty
+        it "requires numeric exp" do
+          expect(error_msgs_for(:exp)).to be_empty
 
-          subject.aud = nil
+          subject.exp = "1d"
 
-          expect(error_msgs_for(:aud)).to_not be_empty
+          expect(error_msgs_for(:exp)).to_not be_empty
         end
+
+        it "requires exp is after iat" do
+          expect(error_msgs_for(:exp)).to be_empty
+
+          subject.exp = subject.iat - 3_600
+
+          expect(error_msgs_for(:exp)).to_not be_empty
+        end
+
+        context "token / production config" do
+          before do
+            allow(subject.class).to receive(:production_env?).and_return(true)
+            subject.token_type = TOKEN_TYPE_V1
+          end
+
+          it "doesn't allow dev tokens to be issued" do
+            expect(error_msgs_for(:token_type)).to be_empty
+
+            subject.token_type = TOKEN_TYPE_DEV
+
+            expect(error_msgs_for(:token_type)).to_not be_empty
+          end
+
+          it "KMS configured check" do
+            expect(error_msgs_for(:base)).to be_empty
+            expect(subject.kms_configured?).to be_truthy
+
+            # Will break KMS Setup
+            subject.key_id = nil
+
+            expect(error_msgs_for(:base)).to_not be_empty
+          end
+        end
+
       end
     end
   end

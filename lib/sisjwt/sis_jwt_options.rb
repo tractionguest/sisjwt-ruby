@@ -67,18 +67,18 @@ module Sisjwt
       # exp
       exp = rec.exp
       if exp.present?
-        unless exp.is_a?(Numeric)
+        if exp.is_a?(Numeric)
+          if exp < rec.iat
+            errors.add(:exp, "can not be before the token was issued (iat)")
+          end
+        else
           errors.add(:exp, "must be the unix timestamp the token expires")
-        end
-
-        if exp < rec.iat
-          errors.add(:exp, "can not be before the token was issued (iat)")
         end
       end
 
       # token_type / config
-      unless rec.token_type =~ /^SISKMSd?$/
-        errors.add(:token_type, "is not a valid token type!")
+      unless rec.token_type =~ /^SISKMS/
+        errors.add(:token_type, "(#{rec.token_type}) is not a valid token type!")
       end
       if SisJwtOptions.production_env? && !rec.production_token_type?
         errors.add(:base, "Can not issue non-production tokens in a production environment")
