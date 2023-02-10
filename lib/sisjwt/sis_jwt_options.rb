@@ -115,6 +115,17 @@ module Sisjwt
 
     # Are we running in a production environment?
     def self.production_env?
+      # This is more complex for a reason:
+      #   It isn't a clear distinction on what to use
+      #   in which order, so *if* we have Rails available
+      #   (the primary, but not exclusive, use case) then
+      #   we offload the problem to Rails and let thier
+      #   core devs deal with that problem.
+      #   It is written like this so it can easily be tested.
+      if Module.const_defined?(:Rails)
+        rails = Module.const_get(:Rails)
+        return true if rails.respond_to?(:env) && rails.env.production?
+      end
       if (env = ENV['RAILS_ENV']).present?
         return true if env.downcase.strip == "production"
       end

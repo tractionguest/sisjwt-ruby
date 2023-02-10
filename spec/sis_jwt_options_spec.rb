@@ -8,20 +8,55 @@ module Sisjwt
         expect(defined?(Rails)).to be_falsy
       end
 
-      it "RAILS_ENV undefined", env: "RAILS_ENV" do
-        expect(subject).to be_falsy
+      context "w/o Rails" do
+        it "RAILS_ENV undefined", env: "RAILS_ENV" do
+          expect(Module.const_defined?(:Rails)).to be_falsy
+          expect(subject).to be_falsy
+        end
+
+        it "RAILS_ENV=test", env: "RAILS_ENV=test" do
+          expect(Module.const_defined?(:Rails)).to be_falsy
+          expect(subject).to be_falsy
+        end
+
+        it "RAILS_ENV=development", env: "RAILS_ENV=development" do
+          expect(Module.const_defined?(:Rails)).to be_falsy
+          expect(subject).to be_falsy
+        end
+
+        it "RAILS_ENV=production", env: "RAILS_ENV=production" do
+          expect(Module.const_defined?(:Rails)).to be_falsy
+          expect(subject).to be_truthy
+        end
       end
 
-      it "RAILS_ENV=test", env: "RAILS_ENV=test" do
-        expect(subject).to be_falsy
-      end
+      context "/w Rails" do
+        let(:rails) { OpenStruct.new }
+        before do
+          allow(Module).to receive(:const_defined?).with(:Rails).and_return(true)
+          allow(Module).to receive(:const_get).with(:Rails).and_return(rails)
+        end
 
-      it "RAILS_ENV=development", env: "RAILS_ENV=development" do
-        expect(subject).to be_falsy
-      end
+        it "Rails.env.test" do
+          rails.env = ActiveSupport::StringInquirer.new("test")
+          expect(Module.const_defined?(:Rails)).to be_truthy
 
-      it "RAILS_ENV=production", env: "RAILS_ENV=production" do
-        expect(subject).to be_truthy
+          expect(subject).to be_falsy
+        end
+
+        it "Rails.env.development" do
+          rails.env = ActiveSupport::StringInquirer.new("development")
+          expect(Module.const_defined?(:Rails)).to be_truthy
+
+          expect(subject).to be_falsy
+        end
+
+        it "Rails.env.production" do
+          rails.env = ActiveSupport::StringInquirer.new("production")
+          expect(Module.const_defined?(:Rails)).to be_truthy
+
+          expect(subject).to be_truthy
+        end
       end
     end
 
