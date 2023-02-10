@@ -1,4 +1,6 @@
 require 'active_model'
+require 'active_support'
+require 'active_support/core_ext'
 
 module Sisjwt
   TOKEN_TYPE_V1 = "SISKMS1.0".freeze
@@ -96,14 +98,14 @@ module Sisjwt
       SisJwtOptions.new(mode: mode).tap do |opts|
         opts.token_type = production_env? ? TOKEN_TYPE_V1 : TOKEN_TYPE_DEV
 
-        opts.aws_region = ENV.fetch("AWS_PROFILE", production_env? ? '' : "dev")
+        opts.aws_profile = ENV.fetch("AWS_PROFILE", (production_env? ? '' : "dev"))
         opts.aws_region = ENV.fetch("AWS_REGION", "us-west-2")
         opts.key_id = ENV["SISJWT_KEY_ID"]
         opts.key_alg = ENV.fetch("SISJWT_KEY_ALG", "RSASSA_PKCS1_V1_5_SHA_256")
         opts.iss = ENV.fetch("SISJWT_ISS", "SIS")
         opts.aud = ENV.fetch("SISJWT_AUD", "SIS")
 
-        opts.token_lifetime = (production_env? ? 1.minute : 1.hour).to_i
+        opts.token_lifetime = (production_env? ? 60 : 3_600).to_i
         opts.iat = nil
         opts.exp = nil
 
