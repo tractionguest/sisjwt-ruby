@@ -61,9 +61,6 @@ module Sisjwt
     end
 
     describe "#valid_token_type" do
-      # let(:token_type_v1) { ::TOKEN_TYPE_V1 }
-      # let(:token_type_dev) { SisJwtOptions::TOKEN_TYPE_DEV }
-
       context "non-production env" do
         subject { SisJwtOptions }
 
@@ -203,6 +200,74 @@ module Sisjwt
           subject.key_id = "arn:token"
           subject.key_alg = "arn:token"
           expect(subject.kms_configured?).to be_truthy
+        end
+      end
+    end
+
+    describe "validations" do
+      subject { SisJwtOptions.defaults }
+      # let(:errors) { subject.errors }
+
+      before do
+        subject.token_type = TOKEN_TYPE_V1
+        subject.key_id = "arn:key"
+        subject.key_alg = "magic"
+        subject.iss = "SIE"
+        subject.aud = "SIC"
+      end
+
+      def error_msgs_for(key)
+        subject.validate
+        subject.errors.full_messages_for(key)
+      end
+
+      context "of required attrs" do
+        it "key_alg" do
+          expect(error_msgs_for(:key_alg)).to be_empty
+
+          subject.key_alg = nil
+
+          expect(error_msgs_for(:key_alg)).to_not be_empty
+        end
+
+        it "key_id" do
+          expect(error_msgs_for(:key_id)).to be_empty
+
+          subject.key_id = nil
+
+          expect(error_msgs_for(:key_id)).to_not be_empty
+        end
+
+        it "aws_region" do
+          expect(error_msgs_for(:aws_region)).to be_empty
+
+          subject.aws_region = nil
+
+          expect(error_msgs_for(:aws_region)).to_not be_empty
+        end
+
+        it "token_lifetime" do
+          expect(error_msgs_for(:token_lifetime)).to be_empty
+
+          subject.token_lifetime = nil
+
+          expect(error_msgs_for(:token_lifetime)).to_not be_empty
+        end
+
+        it "iss" do
+          expect(error_msgs_for(:iss)).to be_empty
+
+          subject.iss = nil
+
+          expect(error_msgs_for(:iss)).to_not be_empty
+        end
+
+        it "aud" do
+          expect(error_msgs_for(:aud)).to be_empty
+
+          subject.aud = nil
+
+          expect(error_msgs_for(:aud)).to_not be_empty
         end
       end
     end

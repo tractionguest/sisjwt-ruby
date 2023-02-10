@@ -41,7 +41,6 @@ module Sisjwt
       }.compact
     end
 
-    validates_presence_of :token_type, if: -> { mode == :sign }
     validates_presence_of :key_alg, if: -> { mode == :sign }
     validates_presence_of :key_id, if: -> { mode == :sign }
     validates_presence_of :aws_region, if: -> { mode == :sign }
