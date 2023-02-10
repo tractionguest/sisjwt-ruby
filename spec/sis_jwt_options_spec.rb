@@ -1,6 +1,30 @@
 # frozen_string_literal: true
 module Sisjwt
   RSpec.describe SisJwtOptions do
+    describe "#production_env?" do
+      subject { SisJwtOptions.production_env? }
+
+      before do
+        expect(defined?(Rails)).to be_falsy
+      end
+
+      it "RAILS_ENV undefined", env: "RAILS_ENV" do
+        expect(subject).to be_falsy
+      end
+
+      it "RAILS_ENV=test", env: "RAILS_ENV=test" do
+        expect(subject).to be_falsy
+      end
+
+      it "RAILS_ENV=development", env: "RAILS_ENV=development" do
+        expect(subject).to be_falsy
+      end
+
+      it "RAILS_ENV=production", env: "RAILS_ENV=production" do
+        expect(subject).to be_truthy
+      end
+    end
+
     describe "#valid_token_type" do
       # let(:token_type_v1) { ::TOKEN_TYPE_V1 }
       # let(:token_type_dev) { SisJwtOptions::TOKEN_TYPE_DEV }

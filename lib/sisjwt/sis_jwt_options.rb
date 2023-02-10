@@ -115,12 +115,8 @@ module Sisjwt
 
     # Are we running in a production environment?
     def self.production_env?
-      if defined?(Rails) && Rails.respond_to?(:env)
-        true if Rails.env.production?
-      end
-
       if (env = ENV['RAILS_ENV']).present?
-        true if env.downcase.strip == "production"
+        return true if env.downcase.strip == "production"
       end
 
       false
