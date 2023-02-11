@@ -12,7 +12,7 @@ module Sisjwt
       @jwt_error = error
 
       @token_type = @headers["alg"]
-      @initial_lifetime = exp - iat.to_i
+      @initial_lifetime = (exp - iat).to_i
       @iss = @payload["iss"]
       @aud = @payload["aud"]
 
@@ -77,7 +77,7 @@ module Sisjwt
           },
 
         }
-      if Rails.env.development?
+      if !SisJwtOptions.production_env?
         return @hash.merge( lifetime: {
           life_left: life_left,
           age: age,

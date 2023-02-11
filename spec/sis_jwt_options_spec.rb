@@ -318,6 +318,7 @@ module Sisjwt
             # Will break KMS Setup
             subject.key_id = nil
 
+            expect(subject.kms_configured?).to be_falsy
             expect(error_msgs_for(:base)).to_not be_empty
           end
         end
