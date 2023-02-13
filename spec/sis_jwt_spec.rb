@@ -143,15 +143,31 @@ module Sisjwt
         end
       end
 
-      context "headers" do
-        context "/w KMS" do
-          let(:options) { o=SisJwtOptions.current; o.token_type = TOKEN_TYPE_DEV; o }
+    context "headers" do
+      context "/w KMS" do
+          let(:options) do
+            SisJwtOptions.current.tap do |o|
+              o.aws_region = "us-west-2"
+              o.token_type = TOKEN_TYPE_V1
+              o.key_alg = "KEWL_AWS_SIGNING_ALG"
+              o.key_id = "arn:key"
+            end
+          end
 
-          it "alg"
+          before do
+            expect(options.kms_configured?).to be_truthy
+          end
 
-          it "kid"
-
-          it "AWS_ALG"
+          it "alg / kid / AWS_ALG" do
+            expected = {
+              alg: TOKEN_TYPE_V1,
+              kid: options.key_id,
+              AWS_ALG: options.key_alg,
+            }
+            expect(::JWT).to receive(:encode).with(a_kind_of(Hash), jwt_secret, jwt_algo, expected).and_return(pseudo_token)
+            token = subject.encode(payload)
+            expect(token).to eq pseudo_token
+          end
         end
 
         context "w/o KMS" do
