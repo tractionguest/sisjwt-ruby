@@ -4,8 +4,7 @@ module Sisjwt
   class Error < StandardError; end
 
   class SisJwt
-    attr_reader :options
-
+    attr_reader :options, :logger
     def self.build
       SisJwt.new(SisJwtOptions.current)
     end
