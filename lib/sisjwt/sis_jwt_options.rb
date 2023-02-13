@@ -41,9 +41,9 @@ module Sisjwt
       }.compact
     end
 
-    validates_presence_of :key_alg, if: -> { mode == :sign }
-    validates_presence_of :key_id, if: -> { mode == :sign }
-    validates_presence_of :aws_region, if: -> { mode == :sign }
+    validates_presence_of :key_alg, if: -> { mode == :sign && kms_configured? }
+    validates_presence_of :key_id, if: -> { mode == :sign && kms_configured? }
+    validates_presence_of :aws_region, if: -> { mode == :sign && kms_configured? }
     validates_presence_of :token_lifetime, if: -> { mode == :sign }
     validates_presence_of :iss, if: -> { mode == :sign }
     validates_presence_of :aud, if: -> { mode == :sign }
@@ -101,8 +101,8 @@ module Sisjwt
         opts.aws_region = ENV.fetch("AWS_REGION", "us-west-2")
         opts.key_id = ENV["SISJWT_KEY_ID"]
         opts.key_alg = ENV.fetch("SISJWT_KEY_ALG", "RSASSA_PKCS1_V1_5_SHA_256")
-        opts.iss = ENV.fetch("SISJWT_ISS", "SIS")
-        opts.aud = ENV.fetch("SISJWT_AUD", "SIS")
+        opts.iss = ENV.fetch("SISJWT_ISS", "SISi")
+        opts.aud = ENV.fetch("SISJWT_AUD", "SISa")
 
         opts.token_lifetime = (production_env? ? 60 : 3_600).to_i
         opts.iat = nil

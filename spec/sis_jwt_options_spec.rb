@@ -127,6 +127,10 @@ module Sisjwt
       end
 
       context "non-production env" do
+        it "is valid" do
+          expect(subject).to be_valid
+        end
+
         it "aws_profile = 'dev'", env: "AWS_PROFILE" do
           expect(subject.aws_profile).to eq 'dev'
         end
@@ -154,11 +158,11 @@ module Sisjwt
         end
 
         it "iss = SIS", env: "SISJWT_ISS" do
-          expect(subject.iss).to eq "SIS"
+          expect(subject.iss).to eq "SISi"
         end
 
         it "aud = SIS", env: "SISJWT_AUD" do
-          expect(subject.aud).to eq "SIS"
+          expect(subject.aud).to eq "SISa"
         end
 
         it "iat uses now" do
@@ -222,28 +226,34 @@ module Sisjwt
 
       context "signing mode" do
         context "of required attrs" do
-          it "key_alg" do
-            expect(error_msgs_for(:key_alg)).to be_empty
+          context "KMS attributes" do
+            before do
+              allow(subject).to receive(:kms_configured?).and_return(true)
+            end
 
-            subject.key_alg = nil
+            it "key_alg" do
+              expect(error_msgs_for(:key_alg)).to be_empty
 
-            expect(error_msgs_for(:key_alg)).to_not be_empty
-          end
+              subject.key_alg = nil
 
-          it "key_id" do
-            expect(error_msgs_for(:key_id)).to be_empty
+              expect(error_msgs_for(:key_alg)).to_not be_empty
+            end
 
-            subject.key_id = nil
+            it "key_id" do
+              expect(error_msgs_for(:key_id)).to be_empty
 
-            expect(error_msgs_for(:key_id)).to_not be_empty
-          end
+              subject.key_id = nil
 
-          it "aws_region" do
-            expect(error_msgs_for(:aws_region)).to be_empty
+              expect(error_msgs_for(:key_id)).to_not be_empty
+            end
 
-            subject.aws_region = nil
+            it "aws_region" do
+              expect(error_msgs_for(:aws_region)).to be_empty
 
-            expect(error_msgs_for(:aws_region)).to_not be_empty
+              subject.aws_region = nil
+
+              expect(error_msgs_for(:aws_region)).to_not be_empty
+            end
           end
 
           it "token_lifetime" do
