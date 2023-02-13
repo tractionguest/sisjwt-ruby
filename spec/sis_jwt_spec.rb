@@ -26,32 +26,160 @@ module Sisjwt
     end
 
     describe ".encode" do
-      it "requires that payload is a hash"
+      let(:options) { o=SisJwtOptions.current; o.token_type = TOKEN_TYPE_DEV; o }
+      let(:payload) { { a:1 } }
+      let(:jwt_secret) { a_kind_of(String) }
+      let(:jwt_algo) { a_kind_of(Algo::SisJwtV1) }
+      let(:pseudo_token) { "LOLIMAJWT" }
+      subject { SisJwt.new(options) }
+
+      it do
+        expect(options.kms_configured?).to be_falsy
+        expect(options).to be_valid
+      end
+
+      it "requires that payload is a hash" do
+        ret = nil
+        expect {
+          ret = subject.encode(:not_a_hash)
+        }.to raise_error ArgumentError
+      end
 
       context "payload" do
+        let(:payload) do
+{
+            # "iss" => "PISSUER",
+            # "aud" => "PAUDIENCE",
+            "iat" => 12345.1,
+            "exp" => 67890.2,
+          }
+        end
+        # let(:jwt_secret) { a_kind_of(String) }
+        # let(:jwt_algo) { a_kind_of(Algo::SisJwtV1) }
+        let(:headers) { a_kind_of(Hash) }
+        # let(:pseudo_token) { "LOLIMAJWT" }
+
+        before do
+          # expect(::JWT).to receive(:encode).with(payload, jwt_secret, jwt_algo, headers).and_return(pseudo_token)
+
+          # ret_token = subject.encode(payload)
+          # expect(ret_token).to eq ret_token
+        end
+
         context "overrides values if present" do
-          it "iss"
+          it "iss" do
+            expected = a_hash_including({
+              "iss" => options.iss,
+            })
+            expect(::JWT).to receive(:encode).with(expected, jwt_secret, jwt_algo, headers).and_return(pseudo_token)
+            token = subject.encode(payload)
+            expect(token).to eq pseudo_token
+          end
 
-          it "aud"
-
-          it "iat"
+          it "aud" do
+            expected = a_hash_including({
+              "aud" => options.aud,
+            })
+            expect(::JWT).to receive(:encode).with(expected, jwt_secret, jwt_algo, headers).and_return(pseudo_token)
+            token = subject.encode(payload)
+            expect(token).to eq pseudo_token
+          end
         end
 
         context "uses values if present" do
-          it "iat"
+          context "as numerics on payload" do
+            it "iat" do
+              payload["iat"] = 7.7
+              expected = a_hash_including({
+                "iat" => 7.7
+              })
+              expect(::JWT).to receive(:encode).with(expected, jwt_secret, jwt_algo, headers).and_return(pseudo_token)
+              token = subject.encode(payload)
+              expect(token).to eq pseudo_token
+            end
 
-          it "exp"
+            it "exp" do
+              payload["exp"] = 7.7
+              expected = a_hash_including({
+                "exp" => 7.7
+              })
+              expect(::JWT).to receive(:encode).with(expected, jwt_secret, jwt_algo, headers).and_return(pseudo_token)
+              token = subject.encode(payload)
+              expect(token).to eq pseudo_token
+            end
+          end
+
+          context "as non-numerics in payload" do
+            it "iat" do
+              payload["iat"] = :not_numeric
+              expected = a_hash_including({
+                "iat" => be_within(0.5).of(options.iat),
+              })
+              expect(::JWT).to receive(:encode).with(expected, jwt_secret, jwt_algo, headers).and_return(pseudo_token)
+              token = subject.encode(payload)
+              expect(token).to eq pseudo_token
+            end
+
+            it "exp" do
+              payload["exp"] = :not_numeric
+              expected = a_hash_including({
+                "exp" => be_within(0.5).of(options.exp),
+              })
+              expect(::JWT).to receive(:encode).with(expected, jwt_secret, jwt_algo, headers).and_return(pseudo_token)
+              token = subject.encode(payload)
+              expect(token).to eq pseudo_token
+            end
+          end
         end
 
-        it "removes nil values"
+        it "removes nil values" do
+          payload["non-empty"] = :value
+          payload["empty"] = nil
+          expected = a_hash_including(payload.dup)
+          expect(::JWT).to_not receive(:encode).with(expected, jwt_secret, jwt_algo, headers)
+          allow(::JWT).to receive(:encode).and_return(pseudo_token)
+          token = subject.encode(payload)
+          expect(token).to eq pseudo_token
+        end
       end
 
       context "headers" do
-        it "alg"
+        context "/w KMS" do
+          let(:options) { o=SisJwtOptions.current; o.token_type = TOKEN_TYPE_DEV; o }
 
-        it "kid"
+          it "alg"
 
-        it "AWS_ALG"
+          it "kid"
+
+          it "AWS_ALG"
+        end
+
+        context "w/o KMS" do
+          it "alg" do
+            expected = a_hash_including({
+              alg: TOKEN_TYPE_DEV,
+            })
+            expect(::JWT).to receive(:encode).with(payload, jwt_secret, jwt_algo, expected).and_return(pseudo_token)
+            token = subject.encode(payload)
+            expect(token).to eq pseudo_token
+          end
+
+          it "kid" do
+            expected = a_hash_including({
+              kid: a_kind_of(Object),
+            })
+            expect(::JWT).to_not receive(:encode).with(payload, jwt_secret, jwt_algo, expected)
+            token = subject.encode(payload)
+          end
+
+          it "AWS_ALG" do
+            expected = a_hash_including({
+              AWS_ALG: a_kind_of(Object),
+            })
+            expect(::JWT).to_not receive(:encode).with(payload, jwt_secret, jwt_algo, expected)
+            token = subject.encode(payload)
+          end
+        end
 
         it "removes null values"
       end

@@ -15,7 +15,7 @@ module Sisjwt
     end
 
     def encode(payload)
-      raise "payload should be a hash" unless payload.is_a?(Hash)
+      raise ArgumentError.new("payload should be a hash") unless payload.is_a?(Hash)
 
       # Make sure that we tag the token with our issuer so that we can
       # easily decode it in the future.
