@@ -25,9 +25,51 @@ module Sisjwt
       end
     end
 
-    describe ".encode"
+    describe ".encode" do
+      it "requires that payload is a hash"
 
-    describe ".verify"
+      context "payload" do
+        context "overrides values if present" do
+          it "iss"
+
+          it "aud"
+
+          it "iat"
+        end
+
+        context "uses values if present" do
+          it "iat"
+
+          it "exp"
+        end
+
+        it "removes nil values"
+      end
+
+      context "headers" do
+        it "alg"
+
+        it "kid"
+
+        it "AWS_ALG"
+
+        it "removes null values"
+      end
+
+      it "calls JWT library to create token"
+    end
+
+    describe ".verify" do
+      it "uses JWT library to decode token"
+
+      context "AWS KMS configured" do
+        it "returns KMS verification context"
+      end
+
+      context "dev mode is configured" do
+        it "returns shared secret"
+      end
+    end
   end
 end
 
