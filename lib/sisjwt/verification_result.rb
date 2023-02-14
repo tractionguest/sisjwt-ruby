@@ -75,7 +75,8 @@ module Sisjwt
             aud: @allowed_aud,
             iss: @allowed_iss,
           },
-
+          valid: valid?,
+          errors: errors,
         }
       if !SisJwtOptions.production_env?
         return @hash.merge( lifetime: {
@@ -85,6 +86,10 @@ module Sisjwt
         })
       end
       @hash
+    end
+
+    def to_json
+      to_h.to_json
     end
 
     #
