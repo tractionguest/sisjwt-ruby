@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Sisjwt
   class VerificationResult
     include ActiveModel::Validations
@@ -11,12 +13,12 @@ module Sisjwt
       @payload = (payload || {}).freeze
       @jwt_error = error
 
-      @token_type = @headers["alg"]
+      @token_type = @headers['alg']
       @initial_lifetime = (exp - iat).to_i
-      @iss = @payload["iss"]
-      @aud = @payload["aud"]
+      @iss = @payload['iss']
+      @aud = @payload['aud']
 
-      clear_allowed!  # Will handle calling validate
+      clear_allowed! # Will handle calling validate
     end
 
     validate do
@@ -32,26 +34,26 @@ module Sisjwt
       end
 
       if expired?
-        errors.add(:base, "Token is expired")
+        errors.add(:base, 'Token is expired')
       end
       if age > MAX_ALLOWED_AGE
-        errors.add(:base, "Token is longer lived than allowed")
+        errors.add(:base, 'Token is longer lived than allowed')
       end
 
       unless @allowed_iss.include?(iss)
-        errors.add(:iss, "not on the approved list")
+        errors.add(:iss, 'not on the approved list')
       end
       unless @allowed_aud.include?(aud)
-        errors.add(:aud, "not on the approved list")
+        errors.add(:aud, 'not on the approved list')
       end
     end
 
     def exp
-      @exp ||= payload.fetch("exp", Time.now.to_i - 1)
+      @exp ||= payload.fetch('exp', Time.now.to_i - 1)
     end
 
     def iat
-      @iat ||= payload.fetch("iat", Time.now.to_i)
+      @iat ||= payload.fetch('iat', Time.now.to_i)
     end
 
     def life_left
@@ -67,22 +69,21 @@ module Sisjwt
     end
 
     def to_h
-      @hash ||=
-        {
-          headers: @headers,
-          payload: @payload,
-          allowed: {
-            aud: @allowed_aud,
-            iss: @allowed_iss,
-          },
-
+      @hash ||= {
+        headers: @headers,
+        payload: @payload,
+        allowed: {
+          aud: @allowed_aud,
+          iss: @allowed_iss
         }
-      if !SisJwtOptions.production_env?
-        return @hash.merge( lifetime: {
-          life_left: life_left,
-          age: age,
-          expired: expired?,
-        })
+      }
+
+      unless SisJwtOptions.production_env?
+        return @hash.merge(lifetime: {
+                             life_left: life_left,
+                             age: age,
+                             expired: expired?
+                           })
       end
       @hash
     end
@@ -97,21 +98,19 @@ module Sisjwt
     end
 
     def add_allowed_aud(allowed_aud)
-      return if allowed_aud.blank?
-      unless @allowed_aud.include?(allowed_aud)
-        @allowed_aud << allowed_aud
-        @allowed_aud.flatten!
-        mark_dirty!
-      end
+      return unless allowed_aud.present? || @allowed_aud.include?(allowed_aud)
+
+      @allowed_aud << allowed_aud
+      @allowed_aud.flatten!
+      mark_dirty!
     end
 
     def add_allowed_iss(allowed_iss)
-      return if allowed_iss.blank?
-      unless @allowed_iss.include?(allowed_iss)
-        @allowed_iss << allowed_iss
-        @allowed_iss.flatten!
-        mark_dirty!
-      end
+      return unless allowed_iss.present? || @allowed_iss.include?(allowed_iss)
+
+      @allowed_iss << allowed_iss
+      @allowed_iss.flatten!
+      mark_dirty!
     end
 
     private
@@ -122,4 +121,3 @@ module Sisjwt
     end
   end
 end
-

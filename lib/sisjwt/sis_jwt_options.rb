@@ -1,45 +1,25 @@
+# frozen_string_literal: true
+
 require 'active_model'
 require 'active_support'
 require 'active_support/core_ext'
 
 module Sisjwt
-  TOKEN_TYPE_V1 = "SISKMS1.0".freeze
-  TOKEN_TYPE_DEV = "SISKMSd".freeze
+  AWS_REGION = ENV.fetch('AWS_REGION', 'us-west-2')
+  SISJWT_AUD = ENV.fetch('SISJWT_AUD', 'SISa')
+  SISJWT_ISS = ENV.fetch('SISJWT_ISS', 'SISi')
+  SISJWT_KEY_ALG = ENV.fetch('SISJWT_KEY_ALG', 'RSASSA_PKCS1_V1_5_SHA_256')
+  SISJWT_KEY_ID = ENV['SISJWT_KEY_ID']
+  TOKEN_TYPE_DEV = 'SISKMSd'
+  TOKEN_TYPE_V1 = 'SISKMS1.0'
+  VALID_MODES = %i[sign verify].freeze
 
   class SisJwtOptions
     include ActiveModel::Validations
 
-    def self.valid_token_type(token_type)
-      [
-        TOKEN_TYPE_V1,
-        SisJwtOptions.production_env? ? nil : TOKEN_TYPE_DEV,
-      ].compact.include?(token_type)
-    end
-
     attr_reader :mode
-    attr_accessor :token_type, :key_alg, :key_id, :aws_region, :aws_profile
-    attr_accessor :token_lifetime, :iss, :aud, :iat, :exp
-
-    def initialize(mode: :sign)
-      raise "invalid mode: #{mode}" unless %i[sign verify].include?(mode)
-      @mode = mode
-    end
-
-    def to_h
-      {
-        mode: mode,
-        token_type: token_type,
-        key_alg: key_alg,
-        key_id: key_id,
-        aws_region: aws_region,
-        aws_profile: aws_profile,
-        token_lifetime: token_lifetime,
-        iss: iss,
-        aud: aud,
-        iat: iat,
-        exp: exp,
-      }.compact
-    end
+    attr_writer :exp, :iat, :key_alg, :key_id, :token_type
+    attr_accessor :aws_region, :aws_profile, :token_lifetime, :iss, :aud
 
     validates_presence_of :key_alg, if: -> { mode == :sign && kms_configured? }
     validates_presence_of :key_id, if: -> { mode == :sign && kms_configured? }
@@ -50,9 +30,7 @@ module Sisjwt
 
     # Common (sign/verify) validations
     validate do |rec|
-      unless rec.valid_token_type?
-        errors.add(:token_type, "is invalid")
-      end
+      errors.add(:token_type, 'is invalid') unless rec.valid_token_type?
     end
 
     # Signing Mode Validations
@@ -61,7 +39,7 @@ module Sisjwt
 
       # iss/aud distinctness
       if rec.iss == rec.aud
-        errors.add(:iss, "Can not be equal to AUDience!")
+        errors.add(:iss, 'Can not be equal to AUDience!')
       end
 
       # exp
@@ -69,10 +47,10 @@ module Sisjwt
       if exp.present?
         if exp.is_a?(Numeric)
           if exp < rec.iat
-            errors.add(:exp, "can not be before the token was issued (iat)")
+            errors.add(:exp, 'can not be before the token was issued (iat)')
           end
         else
-          errors.add(:exp, "must be the unix timestamp the token expires")
+          errors.add(:exp, 'must be the unix timestamp the token expires')
         end
       end
 
@@ -81,104 +59,125 @@ module Sisjwt
         errors.add(:token_type, "(#{rec.token_type}) is not a valid token type!")
       end
       if SisJwtOptions.production_env? && !rec.production_token_type?
-        errors.add(:base, "Can not issue non-production tokens in a production environment")
+        errors.add(:base, 'Can not issue non-production tokens in a production environment')
       end
 
       if SisJwtOptions.production_env? && !rec.kms_configured?
-        errors.add(:base, "AWS KMS is not properly configured")
+        errors.add(:base, 'AWS KMS is not properly configured')
       end
     end
 
-    def self.current
-      @current ||= SisJwtOptions.defaults
-    end
+    class << self
+      def valid_token_type(token_type)
+        [
+          TOKEN_TYPE_V1,
+          SisJwtOptions.production_env? ? nil : TOKEN_TYPE_DEV
+        ].compact.include?(token_type)
+      end
 
-    def self.defaults(mode: :sign)
-      SisJwtOptions.new(mode: mode).tap do |opts|
+      def current
+        @current ||= SisJwtOptions.defaults
+      end
+
+      def defaults(mode: :sign)
+        SisJwtOptions.new(mode: mode).tap do |opts|
+          assign_options(opts)
+          opts.validate if mode == :sign
+        end
+      end
+
+      # Are we running in a production environment?
+      def production_env?
+        # This is more complex for a reason:
+        #   It isn't a clear distinction on what to use
+        #   in which order, so *if* we have Rails available
+        #   (the primary, but not exclusive, use case) then
+        #   we offload the problem to Rails and let thier
+        #   core devs deal with that problem.
+        #   It is written like this so it can easily be tested.
+        if Module.const_defined?(:Rails)
+          rails = Module.const_get(:Rails)
+          return true if rails.respond_to?(:env) && rails.env.production?
+        end
+        if (env = ENV['RAILS_ENV']).present?
+          return true if env.downcase.strip == 'production'
+        end
+
+        false
+      end
+
+      private
+
+      def assign_options(opts)
         opts.token_type = production_env? ? TOKEN_TYPE_V1 : TOKEN_TYPE_DEV
 
-        opts.aws_profile = ENV.fetch("AWS_PROFILE", (production_env? ? '' : "dev"))
-        opts.aws_region = ENV.fetch("AWS_REGION", "us-west-2")
-        opts.key_id = ENV["SISJWT_KEY_ID"]
-        opts.key_alg = ENV.fetch("SISJWT_KEY_ALG", "RSASSA_PKCS1_V1_5_SHA_256")
-        opts.iss = ENV.fetch("SISJWT_ISS", "SISi")
-        opts.aud = ENV.fetch("SISJWT_AUD", "SISa")
+        opts.aws_profile = ENV.fetch('AWS_PROFILE', (production_env? ? '' : 'dev'))
+        opts.aws_region = AWS_REGION
+        opts.key_id = SISJWT_KEY_ID
+        opts.key_alg = SISJWT_KEY_ALG
+        opts.iss = SISJWT_ISS
+        opts.aud = SISJWT_AUD
 
         opts.token_lifetime = (production_env? ? 60 : 3_600).to_i
         opts.iat = nil
         opts.exp = nil
-
-        opts.validate if mode == :sign
       end
     end
 
-    # Are we running in a production environment?
-    def self.production_env?
-      # This is more complex for a reason:
-      #   It isn't a clear distinction on what to use
-      #   in which order, so *if* we have Rails available
-      #   (the primary, but not exclusive, use case) then
-      #   we offload the problem to Rails and let thier
-      #   core devs deal with that problem.
-      #   It is written like this so it can easily be tested.
-      if Module.const_defined?(:Rails)
-        rails = Module.const_get(:Rails)
-        return true if rails.respond_to?(:env) && rails.env.production?
-      end
-      if (env = ENV['RAILS_ENV']).present?
-        return true if env.downcase.strip == "production"
-      end
+    def initialize(mode: :sign)
+      @mode = mode
+      raise ArgumentError, "invalid mode: #{mode}" unless VALID_MODES.include?(mode)
+    end
 
-      false
+    def to_h
+      {
+        mode: mode, token_type: token_type, key_alg: key_alg, key_id: key_id,
+        aws_region: aws_region, aws_profile: aws_profile,
+        token_lifetime: token_lifetime, iss: iss, aud: aud, iat: iat, exp: exp
+      }.compact
     end
 
     def error_messages(revalidate: true)
       validate if revalidate
       return if valid?
 
-      msg = %w(Errors:)
-      errors.messages.each do |attr, errors|
-        errors.each do |error|
-          msg << "\t#{attr} #{error}"
+      %w[Errors:].concat(
+        errors.messages.flat_map do |attr, errors|
+          errors.map { |error| "\t#{attr} #{error}" }
         end
-      end
-
-      msg.join("\n")
+      ).join('\n')
     end
 
     def iat
-      return @iat unless @iat.nil?
-      DateTime.now.to_f
+      @ait.present? ? @iat : DateTime.now.to_f
     end
 
     def exp
-      return @exp unless @exp.nil?
-      (iat + token_lifetime.to_i).to_i
+      @exp.present? ? @exp : (iat + token_lifetime.to_i).to_i
     end
 
     def key_id
-      return unless kms_configured?
-      @key_id
+      @key_id if kms_configured?
     end
 
     def key_alg
-      return unless kms_configured?
-      @key_alg
+      @key_alg if kms_configured?
     end
 
     def token_type
       return @token_type unless defined?(Rails)
+      raise Error('Can not issue dev tokens in production!') if dev_token_in_prod?
 
-      # Check to make sure that we are not returning weak dev tokens in prod envs
-      if self.class.production_env? && @token_type == TOKEN_TYPE_DEV
-        raise Error("Can not issue dev tokens in production!")
-      end
       @token_type
+    end
+
+    def dev_token_in_prod?
+      self.class.production_env? && @token_type == TOKEN_TYPE_DEV
     end
 
     def production_token_type?
       [
-        TOKEN_TYPE_V1,
+        TOKEN_TYPE_V1
       ].include?(@token_type)
     end
 
@@ -188,7 +187,7 @@ module Sisjwt
 
     # Are all the values requried to make a KMS call configured?
     def kms_configured?
-      return true if production_token_type? &&
+      production_token_type? &&
         @aws_region.present? &&
         @key_id.present? &&
         @key_alg.present?
