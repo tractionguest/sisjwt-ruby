@@ -197,7 +197,15 @@ module Sisjwt
           end
         end
 
-        it "removes null values"
+        it "removes null values" do
+          expected = a_hash_including({
+            alg: nil,
+            kid: nil,
+            AWS_ALG: nil,
+          })
+          expect(::JWT).to_not receive(:encode).with(payload, jwt_secret, jwt_algo, expected)
+          token = subject.encode(payload)
+        end
       end
 
       it "calls JWT library to create token"
