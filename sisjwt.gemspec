@@ -35,6 +35,11 @@ Gem::Specification.new do |spec|
   spec.add_dependency "aws-sdk-kms", "~> 1"
   spec.add_dependency "jwt", "~> 2.6.0"
 
+  spec.add_development_dependency "guard-rspec", "~> 4.7.3"
   spec.add_development_dependency "pry"
+  spec.add_development_dependency "rake", "~> 13.0"
+  spec.add_development_dependency "rspec", "~> 3.0"
+  spec.add_development_dependency "rubocop", "~> 1.21"
+  spec.add_development_dependency "simplecov"
   spec.add_development_dependency "solargraph"
 end
