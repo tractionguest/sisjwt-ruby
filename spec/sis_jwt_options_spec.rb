@@ -57,6 +57,40 @@ module Sisjwt
 
           expect(subject).to be_truthy
         end
+
+        context "/w SISJWT_UNSAFE_ENV override =" do
+          context "production", env: "SISJWT_UNSAFE_ENV=production" do
+            it "RAILS_ENV=production" do
+              rails.env = ActiveSupport::StringInquirer.new("production")
+              expect(Module.const_defined?(:Rails)).to be_truthy
+
+              expect(subject).to be_truthy
+            end
+
+            it "RAILS_ENV=development" do
+              rails.env = ActiveSupport::StringInquirer.new("development")
+              expect(Module.const_defined?(:Rails)).to be_truthy
+
+              expect(subject).to be_truthy
+            end
+          end
+
+          context "development", env: "SISJWT_UNSAFE_ENV=development" do
+            it "RAILS_ENV=production" do
+              rails.env = ActiveSupport::StringInquirer.new("production")
+              expect(Module.const_defined?(:Rails)).to be_truthy
+
+              expect(subject).to be_falsy
+            end
+
+            it "RAILS_ENV=development" do
+              rails.env = ActiveSupport::StringInquirer.new("development")
+              expect(Module.const_defined?(:Rails)).to be_truthy
+
+              expect(subject).to be_falsy
+            end
+          end
+        end
       end
     end
 

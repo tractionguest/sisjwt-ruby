@@ -114,6 +114,12 @@ module Sisjwt
 
     # Are we running in a production environment?
     def self.production_env?
+      # Allow for overriding the production-ness so we can use dev
+      # tokens on kubes
+      if (env = ENV['SISJWT_UNSAFE_ENV']).present?
+        return env.downcase.strip == "production"
+      end
+
       # This is more complex for a reason:
       #   It isn't a clear distinction on what to use
       #   in which order, so *if* we have Rails available
