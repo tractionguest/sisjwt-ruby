@@ -5,11 +5,6 @@ require 'active_support'
 require 'active_support/core_ext'
 
 module Sisjwt
-  AWS_REGION = ENV.fetch('AWS_REGION', 'us-west-2')
-  SISJWT_AUD = ENV.fetch('SISJWT_AUD', 'SISa')
-  SISJWT_ISS = ENV.fetch('SISJWT_ISS', 'SISi')
-  SISJWT_KEY_ALG = ENV.fetch('SISJWT_KEY_ALG', 'RSASSA_PKCS1_V1_5_SHA_256')
-  SISJWT_KEY_ID = ENV['SISJWT_KEY_ID']
   TOKEN_TYPE_DEV = 'SISKMSd'
   TOKEN_TYPE_V1 = 'SISKMS1.0'
   VALID_MODES = %i[sign verify].freeze
@@ -100,11 +95,11 @@ module Sisjwt
         opts.token_type = production_env? ? TOKEN_TYPE_V1 : TOKEN_TYPE_DEV
 
         opts.aws_profile = ENV.fetch('AWS_PROFILE', (production_env? ? '' : 'dev'))
-        opts.aws_region = AWS_REGION
-        opts.key_id = SISJWT_KEY_ID
-        opts.key_alg = SISJWT_KEY_ALG
-        opts.iss = SISJWT_ISS
-        opts.aud = SISJWT_AUD
+        opts.aws_region = ENV.fetch('AWS_REGION', 'us-west-2')
+        opts.key_id = ENV['SISJWT_KEY_ID']
+        opts.key_alg = ENV.fetch('SISJWT_KEY_ALG', 'RSASSA_PKCS1_V1_5_SHA_256')
+        opts.iss = ENV.fetch('SISJWT_ISS', 'SISi')
+        opts.aud = ENV.fetch('SISJWT_AUD', 'SISa')
 
         opts.token_lifetime = (production_env? ? 60 : 3_600).to_i
         opts.iat = nil
