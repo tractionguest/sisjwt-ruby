@@ -13,6 +13,7 @@ module Sisjwt
     let(:payload) { {aud: aud, iss: iss, iat: iat, exp: exp}.merge(payload_overrides).with_indifferent_access }
     let(:init_error) { nil }
     subject { VerificationResult.new(headers, payload, error: init_error) }
+    around { |test| freeze_time(&test) }
 
     describe "#initialize" do
       it "copies values as expected" do
@@ -65,4 +66,3 @@ module Sisjwt
     end
   end
 end
-

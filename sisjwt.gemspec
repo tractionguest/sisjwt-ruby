@@ -36,7 +36,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "jwt", "~> 2.6.0"
 
   spec.add_development_dependency "guard-rspec", "~> 4.7.3"
-  spec.add_development_dependency "pry"
+  spec.add_development_dependency "pry-byebug"
   spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rspec", "~> 3.0"
   spec.add_development_dependency "rubocop", "~> 1.21"
