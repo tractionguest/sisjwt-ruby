@@ -4,11 +4,11 @@ module Sisjwt
   class VerificationResult
     include ActiveModel::Validations
 
-    MAX_ALLOWED_AGE = 3_600
+    MAX_ALLOWED_AGE = 1.hour
 
     attr_reader :token_type, :initial_lifetime, :iss, :aud, :payload, :jwt_error
 
-    def initialize(headers, payload, error:nil)
+    def initialize(headers, payload, error: nil)
       @headers = (headers || {}).freeze
       @payload = (payload || {}).freeze
       @jwt_error = error
@@ -26,40 +26,33 @@ module Sisjwt
       if @jwt_error.present?
         errors.add(:base, @jwt_error)
 
-        if @headers.blank? && @payload.blank?
-          # There is no point in running the rest of the checks as they
-          # will all trigger and just add noise
-          next
-        end
+        # There is no point in running the rest of the checks as they will all
+        # trigger and just add noise
+        next if @headers.blank? && @payload.blank?
       end
 
-      if expired?
-        errors.add(:base, 'Token is expired')
-      end
-      if age > MAX_ALLOWED_AGE
-        errors.add(:base, 'Token is longer lived than allowed')
-      end
-
-      unless @allowed_iss.include?(iss)
-        errors.add(:iss, 'not on the approved list')
-      end
-      unless @allowed_aud.include?(aud)
-        errors.add(:aud, 'not on the approved list')
-      end
+      errors.add(:base, 'Token is longer lived than allowed') if age > MAX_ALLOWED_AGE.to_i
+      errors.add(:base, 'Token is expired') if expired?
+      errors.add(:iss, 'not on the approved list') unless @allowed_iss.include?(iss)
+      errors.add(:aud, 'not on the approved list') unless @allowed_aud.include?(aud)
     end
 
+    # @return [Time] When the token expires.
     def exp
       @exp ||= payload.fetch('exp', Time.now.to_i - 1)
     end
 
+    # @return [Time] When the token was issued.
     def iat
       @iat ||= payload.fetch('iat', Time.now.to_i)
     end
 
+   # @return [Integer] The time until the token expires, in seconds.
     def life_left
       exp - Time.now.to_i
     end
 
+   # @return [Integer] The age of the token, in seconds.
     def age
       Time.now.to_i - iat.to_i
     end
@@ -69,23 +62,16 @@ module Sisjwt
     end
 
     def to_h
-      @hash ||= {
-        headers: @headers,
-        payload: @payload,
-        allowed: {
-          aud: @allowed_aud,
-          iss: @allowed_iss
-        }
-      }
+      @to_h ||=
+        if SisJwtOptions.production_env?
+          build_hash
+        else
+          build_hash.merge(lifetime: dev_lifetime)
+        end
+    end
 
-      unless SisJwtOptions.production_env?
-        return @hash.merge(lifetime: {
-                             life_left: life_left,
-                             age: age,
-                             expired: expired?
-                           })
-      end
-      @hash
+    def to_json(*args)
+      to_h.to_json(*args)
     end
 
     #
@@ -118,6 +104,23 @@ module Sisjwt
     def mark_dirty!(validate: true)
       @hash = nil
       self.validate if validate
+    end
+
+    def build_hash
+      {
+        headers: @headers,
+        payload: @payload,
+        allowed: {
+          aud: @allowed_aud,
+          iss: @allowed_iss
+        },
+        valid: valid?,
+        errors: errors
+      }
+    end
+
+    def dev_lifetime
+      { life_left: life_left, age: age, expired: expired? }
     end
   end
 end

@@ -38,33 +38,23 @@ module Sisjwt
       next unless rec.mode == :sign
 
       # iss/aud distinctness
-      if rec.iss == rec.aud
-        errors.add(:iss, 'Can not be equal to AUDience!')
-      end
+      errors.add(:iss, 'Can not be equal to AUDience!') if rec.iss == rec.aud
 
       # exp
       exp = rec.exp
-      if exp.present?
-        if exp.is_a?(Numeric)
-          if exp < rec.iat
-            errors.add(:exp, 'can not be before the token was issued (iat)')
-          end
-        else
-          errors.add(:exp, 'must be the unix timestamp the token expires')
-        end
+      if exp.is_a?(Numeric)
+        errors.add(:exp, 'can not be before the token was issued (iat)') if exp < rec.iat
+      elsif exp.present?
+        errors.add(:exp, 'must be the unix timestamp the token expires')
       end
 
       # token_type / config
-      unless rec.token_type =~ /^SISKMS/
-        errors.add(:token_type, "(#{rec.token_type}) is not a valid token type!")
-      end
+      errors.add(:token_type, "(#{rec.token_type}) is not a valid token type!") unless rec.token_type =~ /^SISKMS/
       if SisJwtOptions.production_env? && !rec.production_token_type?
         errors.add(:base, 'Can not issue non-production tokens in a production environment')
       end
 
-      if SisJwtOptions.production_env? && !rec.kms_configured?
-        errors.add(:base, 'AWS KMS is not properly configured')
-      end
+      errors.add(:base, 'AWS KMS is not properly configured') if SisJwtOptions.production_env? && !rec.kms_configured?
     end
 
     class << self
@@ -86,7 +76,7 @@ module Sisjwt
         end
       end
 
-      # Are we running in a production environment?
+      # @return [Boolean] Are we running in a production environment?
       def production_env?
         # This is more complex for a reason:
         #   It isn't a clear distinction on what to use
@@ -99,11 +89,9 @@ module Sisjwt
           rails = Module.const_get(:Rails)
           return true if rails.respond_to?(:env) && rails.env.production?
         end
-        if (env = ENV['RAILS_ENV']).present?
-          return true if env.downcase.strip == 'production'
-        end
 
-        false
+        env = ENV['RAILS_ENV']
+        env.present? && env.downcase.strip == 'production'
       end
 
       private

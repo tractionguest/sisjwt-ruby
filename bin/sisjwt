@@ -102,10 +102,12 @@ class App
     @logger.debug " token: #{token}"
 
     sisjwt = ::Sisjwt::SisJwt.new(@jwt_opts, logger: @logger)
-    data = sisjwt.verify(token)
+    verification = sisjwt.verify(token)
+    verification.add_allowed_aud(aud)
+    verification.add_allowed_iss(iss)
 
     # We explictitly do not use logger here because we want it to goto stdout
-    $stdout.puts data.to_json
+    $stdout.puts verification.to_json
   end
 
   ################################################################################
@@ -198,7 +200,6 @@ default_verbosity_level = ENV.fetch("SISJWT_VERBOSE", convert_log_level_to_verbo
 app = App.from_options!(ARGV, logger: @logger)
 
 # Validation
-@logger.fatal "TODO: signing validation iss=aud appears to be broken"
 if (msg = app.error_messages).present?
   if app.strict_mode
     @logger.fatal msg

@@ -12,3 +12,4 @@
 
 .DS_Store
 /token_intercepted.sig
+/Gemfile.lock
