@@ -26,11 +26,11 @@ module Sisjwt
     end
 
     describe ".encode" do
-      let(:options) { o=SisJwtOptions.current; o.token_type = TOKEN_TYPE_DEV; o }
       let(:payload) { { a:1 } }
       let(:jwt_secret) { a_kind_of(String) }
       let(:jwt_algo) { a_kind_of(Algo::SisJwtV1) }
       let(:pseudo_token) { "LOLIMAJWT" }
+      let(:options) { o=SisJwtOptions.current; o.token_type = TOKEN_TYPE_DEV; o }
       subject { SisJwt.new(options) }
 
       it do
@@ -207,15 +207,48 @@ module Sisjwt
           token = subject.encode(payload)
         end
       end
-
-      it "calls JWT library to create token"
     end
 
     describe ".verify" do
+      # let(:token) { 'eyJhbGciOiJTSVNLTVNkIn0.eyJhY2NvdW50IjoiNjQ2QkFFMzgtRkYyNi00QjVBLThDQ0EtNUVBRTNERDk3RUU3IiwiaW52aXRlIjoiMyIsImlzcyI6InNpYyIsImF1ZCI6InNpZSIsImlhdCI6MTY3NjQxNzkzOC4yNTYyODgsImV4cCI6MTY3NjQyMTUzOH0.FsTT5isbNeZUkuvM9RQrBDBraKSFbwBVDvx6afF0bvfHxUCxPRV1Yr3WRXteRWvvEK6DwV9nh9pfPWYkR0SObw' }
+      let(:key_id) { 'arn:aws:kms:us-west-2:895963939461:key/mrk-21a175a6153f41dda888d52b23f3e4c9' }
+      let(:aws_alg) { 'RSASSA_PKCS1_V1_5_SHA_256' }
+      let(:token) { 'eyJhbGciOiJTSVNLTVMxLjAiLCJraWQiOiJhcm46YXdzOmttczp1cy13ZXN0LTI6ODk1OTYzOTM5NDYxOmtleS9tcmstMjFhMTc1YTYxNTNmNDFkZGE4ODhkNTJiMjNmM2U0YzkiLCJBV1NfQUxHIjoiUlNBU1NBX1BLQ1MxX1YxXzVfU0hBXzI1NiJ9.eyJhY2NvdW50IjoiNjQ2QkFFMzgtRkYyNi00QjVBLThDQ0EtNUVBRTNERDk3RUU3IiwiaW52aXRlIjoiMyIsImlzcyI6InNpYyIsImF1ZCI6InNpZSIsImlhdCI6MTY3NjQyMzkyNS42MzA2NzYsImV4cCI6MTY3NjQyNzUyNX0.ED5Z1xiq64iUs-ic6UeHsEdrTnvb_ZMRYV_7TidDeusNIUXHBlPgdjeMD9qHWrzaUVte9sIKiyuPGwqngIZpmCdAiX9biZON7w3m24ukmCJnb86cCowHm-cQCuQjpQRU8ntB3ONW1dBq5zQsXUn0wHKYcm0BW86gPtf9W8ono_zUXhINsN5IzSrIna--vx0MuxKnngRdmulHR1P18xr11x4jdD-lhBgMnUB4NtL9ZZ8LqluUdV6yNXERUa4RXNMZwSfh0z_ARlOrruRnpMSp70IfdjIWzem7GIq2iF2GsGDOs6LszYMid4cgU96WSzlLGT_AH6lBKw47yfv2Vnan2lvIncK40FNo00bL4qkpAShE-i4DmiZZvWNJF4dXZIYTDxxlJMfPG8wySvpNkBagTCfmdb8p66w4jvC0WgTc9axRpVOVCLuP2Bd971W6kChVbQVZ_M37COhK1tp-sVEdmiC-0H9nol0UpY6-SXB4gwPL0qX-b9UILT0EWfcL0Z2Guu58j-VGj1u4yZZYLg7hxgph8KyAKoh1eIGLNyAxTkNQIJUQlrRGIs7isSquyHnGeuRDmNGVND5KMD8WmaKbq_bXnrUtxJKBdQPxH0vQJ_whemntYwP1wqWsie-PrZea6YYvZnAN-1FiSZeXJQRBz8eYyrH251V0wQnlAUiAUZg'}
+      let(:token_data) do
+        parts = token.split(".", 3)
+        parts[0] + "." + parts[1]
+      end
+      let(:algo) { Algo::SisJwtV1.new(options) }
+      let(:options) do
+        SisJwtOptions.current.tap do |opts|
+          opts.aws_region = "us-west-2"
+          opts.token_type = TOKEN_TYPE_V1
+          opts.key_id = key_id
+          opts.key_alg = aws_alg
+        end
+      end
+      subject { SisJwt.new(options) }
+
       it "uses JWT library to decode token"
 
       context "AWS KMS configured" do
-        it "returns KMS verification context"
+        before do
+          allow(options).to receive(:kms_configured?).and_return(true)
+          allow(algo).to receive(:kms_verify).and_return(true)
+        end
+
+        it "returns KMS verification context" do
+          allow(subject).to receive(:jwt_alg).and_return(algo)
+          expect(algo).to receive(:verify) do |params|
+            data = params[:data]
+            _signature = params[:signature]
+            verification_key = params[:verification_key]
+
+            expect(data).to eq token_data
+            expect(verification_key).to eq "#{aws_alg};#{key_id}"
+          end
+          subject.verify(token)
+        end
       end
 
       context "dev mode is configured" do
