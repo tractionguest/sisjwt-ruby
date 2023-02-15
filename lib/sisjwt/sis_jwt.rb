@@ -17,7 +17,9 @@ module Sisjwt
       @options = opts
     end
 
-    def encode(**payload)
+    def encode(payload)
+      raise ArgumentError.new('payload should be a hash') unless payload.is_a?(Hash)
+
       merge_options!(payload)
 
       @logger.debug do

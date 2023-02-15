@@ -8,6 +8,6 @@ RSpec.describe Sisjwt::VERSION do
   end
 
   it 'is a Semver version number' do
-    is_expected.to match(semver_regex)
+    is_expected.to match semver_regex
   end
 end
