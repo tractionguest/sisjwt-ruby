@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec.configure do |config|
   config.around(:example, :env) do |example|
     env_meta = Array(example.metadata[:env])

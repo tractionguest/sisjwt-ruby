@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
-require_relative "lib/sisjwt/version"
+require_relative 'lib/sisjwt/version'
 
 Gem::Specification.new do |spec|
-  spec.name = "sisjwt"
+  spec.name = 'sisjwt'
   spec.version = Sisjwt::VERSION
-  spec.authors = ["Andrew Burns"]
-  spec.email = ["andrew.burns@signinsolutions.com"]
+  spec.authors = ['Andrew Burns']
+  spec.email = ['andrew.burns@signinsolutions.com']
 
-  spec.summary = "Ruby implementation of Sign In Solutions JWT Standard"
+  spec.summary = 'Ruby implementation of Sign In Solutions JWT Standard'
   spec.description = spec.summary
   # spec.homepage = "TODO: Put your gem's website or public repo URL here."
-  spec.required_ruby_version = ">= 2.6.0"
+  spec.required_ruby_version = '>= 2.6.0'
 
   # spec.metadata["allowed_push_host"] = "TODO: Set to your gem server 'https://example.com'"
 
@@ -26,21 +26,21 @@ Gem::Specification.new do |spec|
       (f == __FILE__) || f.match(%r{\A(?:(?:bin|test|spec|features)/|\.(?:git|travis|circleci)|appveyor)})
     end
   end
-  spec.bindir = "bin"
-  spec.executables << "sisjwt" #spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
-  spec.require_paths = ["lib"]
+  spec.bindir = 'bin'
+  spec.executables << 'sisjwt' #spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
+  spec.require_paths = ['lib']
 
-  spec.add_dependency "activemodel", "~> 6.0.5"
-  spec.add_dependency "activesupport", "~> 6.0.5"
-  spec.add_dependency "aws-sdk-kms", "~> 1"
-  spec.add_dependency "jwt", "~> 2.6.0"
+  spec.add_dependency 'activemodel', '~> 6.0.5'
+  spec.add_dependency 'activesupport', '~> 6.0.5'
+  spec.add_dependency 'aws-sdk-kms', '~> 1'
+  spec.add_dependency 'jwt', '~> 2.6.0'
 
-  spec.add_development_dependency "guard-rspec", "~> 4.7.3"
-  spec.add_development_dependency "pry-byebug"
-  spec.add_development_dependency "rake", "~> 13.0"
-  spec.add_development_dependency "rspec", "~> 3.0"
-  spec.add_development_dependency "rubocop", "~> 1.21"
-  spec.add_development_dependency "rubocop-rspec", "~> 2.18"
-  spec.add_development_dependency "simplecov"
-  spec.add_development_dependency "solargraph"
+  spec.add_development_dependency 'guard-rspec', '~> 4.7.3'
+  spec.add_development_dependency 'pry-byebug'
+  spec.add_development_dependency 'rake', '~> 13.0'
+  spec.add_development_dependency 'rspec', '~> 3.0'
+  spec.add_development_dependency 'rubocop', '~> 1.21'
+  spec.add_development_dependency 'rubocop-rspec', '~> 2.18'
+  spec.add_development_dependency 'simplecov'
+  spec.add_development_dependency 'solargraph'
 end

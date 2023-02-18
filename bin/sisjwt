@@ -1,12 +1,13 @@
 #!/usr/bin/env ruby
-require "active_support/core_ext"
-require "bundler"
-require "date"
-require "optparse"
+# frozen_string_literal: true
+require 'active_support/core_ext'
+require 'bundler'
+require 'date'
+require 'optparse'
 require 'rubygems'
 
 Bundler.require(:default, :development)
-require "sisjwt"
+require 'sisjwt'
 
 VERBOSITY_LEVELS = {
   0 => Logger::UNKNOWN,
@@ -71,13 +72,13 @@ class App
   #    { "k" => "v", "val" => nil, "other" => "opt" }
   def array_to_hash(array)
     array.map do |v|
-      k,v = v.split("=", 2)
+      k,v = v.split('=', 2)
       [k.strip, v&.strip]
     end.to_h.with_indifferent_access
   end
 
   def sign_token(args = ARGV)
-    @logger.info "SIGN TOKEN"
+    @logger.info 'SIGN TOKEN'
     args = array_to_hash(args) if args.is_a?(Array)
 
     @logger.debug "config: #{to_h}"
@@ -91,10 +92,10 @@ class App
   end
 
   def verify_token(token = ARGV[0])
-    @logger.info "VERIFY TOKEN"
+    @logger.info 'VERIFY TOKEN'
 
-    if token == "-"
-      @logger.debug "Reading token from stdin..."
+    if token == '-'
+      @logger.debug 'Reading token from stdin...'
       token = $stdin.read
     end
 
@@ -119,19 +120,19 @@ class App
     app = App.new(logger: logger)
 
     opt_parser = OptionParser.new do |opts|
-      opts.banner = "sisjwt - Sign in Solutions JWT Generator"
+      opts.banner = 'sisjwt - Sign in Solutions JWT Generator'
 
-      opts.on("--[no-]strict-mode", "Turn off strict mode to allow specifying invalid values, default strict: #{app.strict_mode}") do |v|
+      opts.on('--[no-]strict-mode', "Turn off strict mode to allow specifying invalid values, default strict: #{app.strict_mode}") do |v|
         app.strict_mode = v
       end
 
-      opts.on("--verbose=LEVEL", "Set the verbosity level, 1-5. The higher the number the more verbose") do |v|
+      opts.on('--verbose=LEVEL', 'Set the verbosity level, 1-5. The higher the number the more verbose') do |v|
         app.logger.level = convert_verbosity_level_to_log_level[v]
         app.logger.warn "Verbosity FLAG; level=#{app.logger.level}"
       end
 
       default_vebosity_level = convert_log_level_to_verbosity_level(app.logger.level)
-      opts.on("-v", "Increase the verbosity. Can specify more than once. Default is -#{'v'*default_vebosity_level}; use --verbose if you wish to set a lower value.") do |v|
+      opts.on('-v', "Increase the verbosity. Can specify more than once. Default is -#{'v'*default_vebosity_level}; use --verbose if you wish to set a lower value.") do |v|
         current_vebosity_level = convert_log_level_to_verbosity_level(app.logger.level)
         if current_vebosity_level < VERBOSITY_LEVELS.size - 1
           new_verbosity_level = current_vebosity_level + 1
@@ -142,39 +143,39 @@ class App
         end
       end
 
-      opts.on("-s", "--silent", "Do not output any logs or anything that is not data.  Same as --verbose=0") do |v|
+      opts.on('-s', '--silent', 'Do not output any logs or anything that is not data.  Same as --verbose=0') do |v|
         app.logger.level = Logger::UNKNOWN
       end
 
-      opts.on("-t", "--type=val", "Type of Token to Generate, default #{app.token_type}") do |v|
+      opts.on('-t', '--type=val', "Type of Token to Generate, default #{app.token_type}") do |v|
         app.token_type = v
       end
 
-      opts.on("-a", "--alg=val", "KMS Algorithm to use to sign the token, default #{app.key_alg}") do |v|
+      opts.on('-a', '--alg=val', "KMS Algorithm to use to sign the token, default #{app.key_alg}") do |v|
         app.key_alg = v
       end
 
-      opts.on("-r", "--region=val", "KMS Region to use to sign the token, default #{app.aws_region}") do |v|
+      opts.on('-r', '--region=val', "KMS Region to use to sign the token, default #{app.aws_region}") do |v|
         app.aws_region = v
       end
 
-      opts.on("-e", "--expires=secs", OptionParser::DecimalInteger, "Number of seconds that the key should be valid for (used to calculate `exp` value), default #{app.token_lifetime}s") do |v|
+      opts.on('-e', '--expires=secs', OptionParser::DecimalInteger, "Number of seconds that the key should be valid for (used to calculate `exp` value), default #{app.token_lifetime}s") do |v|
         app.aws_region = v.to_i
       end
 
-      opts.on "--aud=VAL", "Token AUDience (Should be SIS company acronym: SIE, SIC, etc), default #{app.aud}" do |v|
+      opts.on '--aud=VAL', "Token AUDience (Should be SIS company acronym: SIE, SIC, etc), default #{app.aud}" do |v|
         app.aud = v
       end
 
-      opts.on("--iss=VAL", "Token ISSuer (Should be SIS company acronym: SIE, SIC, etc), default #{app.iss}") do |v|
+      opts.on('--iss=VAL', "Token ISSuer (Should be SIS company acronym: SIE, SIC, etc), default #{app.iss}") do |v|
         app.iss = v
       end
 
-      opts.on("--exp=VAL", OptionParser::DecimalInteger, "Token EXPiration, unix time, default #{app.exp}") do |v|
+      opts.on('--exp=VAL', OptionParser::DecimalInteger, "Token EXPiration, unix time, default #{app.exp}") do |v|
         app.exp = v
       end
 
-      opts.on("--ttl=VAL", OptionParser::DecimalInteger, "Token Time To Live, seconds, default #{app.token_lifetime}s") do |v|
+      opts.on('--ttl=VAL', OptionParser::DecimalInteger, "Token Time To Live, seconds, default #{app.token_lifetime}s") do |v|
         app.exp = v
       end
     end
@@ -194,7 +195,7 @@ end
 ################################################################################
 # Main
 ################################################################################
-default_verbosity_level = ENV.fetch("SISJWT_VERBOSE", convert_log_level_to_verbosity_level(Logger::WARN))
+default_verbosity_level = ENV.fetch('SISJWT_VERBOSE', convert_log_level_to_verbosity_level(Logger::WARN))
 @logger = Logger.new($stderr, progname: 'sisjwt', level: convert_verbosity_level_to_log_level(default_verbosity_level))
 
 app = App.from_options!(ARGV, logger: @logger)
@@ -210,7 +211,7 @@ if (msg = app.error_messages).present?
 end
 
 # Command Processing
-if ARGV[0] == "debug"
+if ARGV[0] == 'debug'
   @logger.debug! # <-- Force logger into debug mode for debug output
   @logger.debug "ARGS ->#{app.to_h}<-"
   x=0
@@ -224,10 +225,10 @@ end
 
 cmd = ARGV.shift
 case cmd
-when "sign"
+when 'sign'
   @logger.progname = "#{@logger.progname}-#{cmd}"
   app.sign_token
-when "verify"
+when 'verify'
   @logger.progname = "#{@logger.progname}-#{cmd}"
   app.verify_token
 else
