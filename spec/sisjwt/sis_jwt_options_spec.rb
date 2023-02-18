@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module Sisjwt
   RSpec.describe SisJwtOptions do
     describe '#production_env?' do

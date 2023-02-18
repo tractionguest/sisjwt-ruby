@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 RSpec.describe Sisjwt::SisJwt do
   describe '#build' do
     subject(:jwt) { described_class.build }

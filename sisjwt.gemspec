@@ -34,6 +34,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'activesupport', '~> 6.0.5'
   spec.add_dependency 'aws-sdk-kms', '~> 1'
   spec.add_dependency 'jwt', '~> 2.6.0'
+  spec.add_dependency 'zeitwerk', '~> 2.6'
 
   spec.add_development_dependency 'guard-rspec', '~> 4.7.3'
   spec.add_development_dependency 'pry-byebug'

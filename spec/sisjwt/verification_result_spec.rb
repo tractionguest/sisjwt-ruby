@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module Sisjwt
   RSpec.describe VerificationResult do
     let(:token_type) { Sisjwt::TOKEN_TYPE_V1 }
