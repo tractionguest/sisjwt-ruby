@@ -170,14 +170,14 @@ PLATFORMS
 DEPENDENCIES
   guard-rspec (~> 4.7.3)
   guard-rubocop (~> 1.5)
-  pry-byebug
+  pry-byebug (~> 3.10)
   rake (~> 13.0)
   rspec (~> 3.0)
   rubocop (~> 1.21)
   rubocop-rspec (~> 2.18)
-  simplecov
+  simplecov (~> 0.22)
   sisjwt!
-  solargraph
+  solargraph (~> 0.48)
 
 BUNDLED WITH
    2.4.6

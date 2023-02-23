@@ -18,7 +18,7 @@ module Sisjwt
 
     # Creates a new App instance from given options
     def self.from_options!(options = ARGV, logger: nil)
-      App.new(logger: logger).tap do |app|
+      new(logger: logger).tap do |app|
         opt_parser = CommandLineOptions.new(app)
         opt_parser.parse!(options)
         app.validate
