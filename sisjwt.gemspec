@@ -7,6 +7,7 @@ Gem::Specification.new do |spec|
   spec.version = Sisjwt::VERSION
   spec.authors = ['Andrew Burns']
   spec.email = ['andrew.burns@signinsolutions.com']
+  spec.metadata['rubygems_mfa_required'] = 'true'
 
   spec.summary = 'Ruby implementation of Sign In Solutions JWT Standard'
   spec.description = spec.summary
@@ -27,7 +28,7 @@ Gem::Specification.new do |spec|
     end
   end
   spec.bindir = 'bin'
-  spec.executables << 'sisjwt' #spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
+  spec.executables << 'sisjwt' # spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
   spec.add_dependency 'activemodel', '~> 6.0.5'
@@ -35,13 +36,4 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'aws-sdk-kms', '~> 1'
   spec.add_dependency 'jwt', '~> 2.6.0'
   spec.add_dependency 'zeitwerk', '~> 2.6'
-
-  spec.add_development_dependency 'guard-rspec', '~> 4.7.3'
-  spec.add_development_dependency 'pry-byebug'
-  spec.add_development_dependency 'rake', '~> 13.0'
-  spec.add_development_dependency 'rspec', '~> 3.0'
-  spec.add_development_dependency 'rubocop', '~> 1.21'
-  spec.add_development_dependency 'rubocop-rspec', '~> 2.18'
-  spec.add_development_dependency 'simplecov'
-  spec.add_development_dependency 'solargraph'
 end

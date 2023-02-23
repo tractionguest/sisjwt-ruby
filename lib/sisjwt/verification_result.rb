@@ -1,12 +1,18 @@
 # frozen_string_literal: true
 
 module Sisjwt
+  # The results of verifying a token with {SisJwt#verify}.
   class VerificationResult
     include ActiveModel::Validations
 
     MAX_ALLOWED_AGE = 1.hour
 
-    attr_reader :token_type, :initial_lifetime, :iss, :aud, :payload, :jwt_error
+    attr_reader :allowed_aud, :allowed_iss, :aud, :headers, :initial_lifetime,
+                :iss, :jwt_error, :payload, :token_type
+
+    def self.error(msg)
+      new(nil, nil, error: msg)
+    end
 
     def initialize(headers, payload, error: nil)
       @headers = (headers || {}).freeze
@@ -23,18 +29,18 @@ module Sisjwt
 
     validate do
       # Check to see if we have an additional error to report
-      if @jwt_error.present?
-        errors.add(:base, @jwt_error)
+      if jwt_error.present?
+        errors.add(:base, jwt_error)
 
         # There is no point in running the rest of the checks as they will all
         # trigger and just add noise
-        next if @headers.blank? && @payload.blank?
+        next if headers.blank? && payload.blank?
       end
 
       errors.add(:base, 'Token is longer lived than allowed') if age > MAX_ALLOWED_AGE.to_i
       errors.add(:base, 'Token is expired') if expired?
-      errors.add(:iss, 'not on the approved list') unless @allowed_iss.include?(iss)
-      errors.add(:aud, 'not on the approved list') unless @allowed_aud.include?(aud)
+      errors.add(:iss, 'not on the approved list') unless allowed_iss.include?(iss)
+      errors.add(:aud, 'not on the approved list') unless allowed_aud.include?(aud)
     end
 
     # @return [Time] When the token expires.
@@ -47,12 +53,12 @@ module Sisjwt
       @iat ||= payload.fetch('iat', Time.now.to_i)
     end
 
-   # @return [Integer] The time until the token expires, in seconds.
+    # @return [Integer] The time until the token expires, in seconds.
     def life_left
       exp - Time.now.to_i
     end
 
-   # @return [Integer] The age of the token, in seconds.
+    # @return [Integer] The age of the token, in seconds.
     def age
       Time.now.to_i - iat.to_i
     end
@@ -84,35 +90,35 @@ module Sisjwt
     end
 
     def add_allowed_aud(allowed_aud)
-      return unless allowed_aud.present? || @allowed_aud.include?(allowed_aud)
+      return unless allowed_aud.present? || allowed_aud.include?(allowed_aud)
 
-      @allowed_aud << allowed_aud
-      @allowed_aud.flatten!
+      allowed_aud << allowed_aud
+      allowed_aud.flatten!
       mark_dirty!
     end
 
     def add_allowed_iss(allowed_iss)
-      return unless allowed_iss.present? || @allowed_iss.include?(allowed_iss)
+      return unless allowed_iss.present? || allowed_iss.include?(allowed_iss)
 
-      @allowed_iss << allowed_iss
-      @allowed_iss.flatten!
+      allowed_iss << allowed_iss
+      allowed_iss.flatten!
       mark_dirty!
     end
 
     private
 
     def mark_dirty!(validate: true)
-      @hash = nil
+      @to_h = nil
       self.validate if validate
     end
 
     def build_hash
       {
-        headers: @headers,
-        payload: @payload,
+        headers: headers,
+        payload: payload,
         allowed: {
-          aud: @allowed_aud,
-          iss: @allowed_iss
+          aud: allowed_aud,
+          iss: allowed_iss
         },
         valid: valid?,
         errors: errors

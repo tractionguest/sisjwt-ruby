@@ -5,14 +5,12 @@ require 'openssl'
 
 module Sisjwt
   module Algo
+    # The custom JWT algorithm used to sign and verify tokens.
     class SisJwtV1
-      attr_reader :options
+      attr_reader :logger, :options
 
-      delegate :token_type, :key_alg, :key_id, :aws_region, :aws_profile, to: :options
-
-      # SIG_ALG = 'ECDSA_SHA_256'.freeze
-      # SIG_ALG = 'RSASSA_PSS_SHA_256'.freeze
-      # SIG_ALG = 'RSASSA_PKCS1_V1_5_SHA_256'.freeze
+      delegate :token_type, :key_alg, :key_id, :aws_region, :aws_profile,
+               to: :options
 
       # @params options [SisJwtOptions]
       # @params logger [Logger]
@@ -21,12 +19,9 @@ module Sisjwt
         @options = options
         @options.validate
 
-        #Rails.logger.info "[#{alg}] initialized kms_configured?=#{@options.kms_configured?}"
-        unless @options.valid?
-          # We invoke kms_client here because that will raise a detailed error as to
-          # the current state of the configuration
-          kms_client
-        end
+        # We invoke kms_client here because that will raise a detailed error as
+        # to the current state of the configuration
+        kms_client unless @options.valid?
       end
 
       # Needed by jwt to be considered an algorithim
@@ -37,12 +32,12 @@ module Sisjwt
       # Needed by jwt to be considered an algorithim
       def valid_alg?(alg_to_validate)
         # alg_to_validate == alg
-        Sisjwt::SisJwtOptions.valid_token_type(alg_to_validate)
+        SisJwtOptions.valid_token_type?(alg_to_validate)
       end
 
       # Needed by jwt to be considered an algorithim
       def sign(data:, signing_key:)
-        @logger.info "[#{alg}] sign: kms=#{options.kms_configured?} signing_key=#{signing_key.size} data=#{data.size}"
+        logger.info "[#{alg}] sign: kms=#{options.kms_configured?} signing_key=#{signing_key.size} data=#{data.size}"
 
         if options.kms_configured?
           kms_sign(data)
@@ -52,47 +47,57 @@ module Sisjwt
       end
 
       # Needed by jwt to be considered an algorithim
+      # @return [Boolean]
       def verify(data:, signature:, verification_key:)
-        # aws_alg = verification_key[0]
-        # key_arn = verification_key[1]
-        aws_alg, key_arn = verification_key.split(';', 2)
-        @logger.debug "[#{alg}] verify-kms2: kms=#{options.kms_configured?} aws_alg=#{aws_alg} key_arn=#{key_arn} data=#{data.size} signature=#{signature.size}"
+        aws_alg, key_arn = split_verification_key(data, signature, verification_key)
 
         if options.kms_configured?
-          @logger.debug do
-            File.open('token_intercepted.sig', 'wb') { |f| f.write(signature) }
+          logger.debug do
+            File.binwrite('token_intercepted.sig', signature)
             "[#{alg}] verify-kms2: Writing #{file_name}: #{signature.size} bytes"
           end
           kms_verify(data, signature, aws_alg, key_arn)
         else
-          # This is NOT a secure operation and should use OpenSSL.secure_compare
-          # however as this is a symetric operation inteded only for dev use this
-          # doesn't matter and doesn't warrent a dependancy on rails just to have
-          # this already insecure operation be more secure.
-          shared_secret_sig = sign(data: data, signing_key: verification_key)
-          signature == shared_secret_sig
+          devmode_verify(data, signature, verification_key)
         end
       end
 
-      # def aws_configured?
-      #   @options.kms_configured? && @options.valid? && @options.production_token_type?
-      # end
-
       private
 
-      def kms_client
-        @kms_client ||=
-          begin
-            unless options.kms_configured?
-              raise "KMS is not configured properly, KMS signing not allowed! \n#{@options.error_messages}"
-            end
+      def split_verification_key(data, signature, verification_key)
+        verification_key.split(';', 2).tap do |aws_alg, key_arn|
+          logger.debug("[#{alg}] verify-kms2: kms=#{options.kms_configured?} aws_alg=#{aws_alg} " \
+                       "key_arn=#{key_arn} data=#{data.size} signature=#{signature.size}")
+        end
+      end
 
-            @logger.debug "Creating Aws::KMS::Client(region: #{options.aws_region}, profile: #{options.aws_profile})"
-            Aws::KMS::Client.new(
-              region: options.aws_region,
-              profile: options.aws_profile
-            )
-          end
+      # This is NOT a secure operation and should use OpenSSL.secure_compare
+      # however as this is a symetric operation inteded only for dev use this
+      # doesn't matter and doesn't warrent a dependancy on rails just to have
+      # this already insecure operation be more secure.
+      def devmode_verify(data, signature, verification_key)
+        shared_secret_sig = sign(data: data, signing_key: verification_key)
+        signature == shared_secret_sig
+      end
+
+      def kms_client
+        @kms_client ||= begin
+          assert_configured!
+          logger.debug("Creating Aws::KMS::Client(region: #{options.aws_region}, " \
+                       "profile: #{options.aws_profile})")
+          Aws::KMS::Client.new(
+            region: options.aws_region,
+            profile: options.aws_profile
+          )
+        end
+      end
+
+      def assert_configured!
+        return if options.kms_configured?
+
+        raise Error,
+              'KMS is not configured properly, KMS signing not allowed!' \
+              "\n#{@options.error_messages}"
       end
 
       def build_kms_params(params)
@@ -104,26 +109,22 @@ module Sisjwt
       end
 
       def kms_sign(data)
-        @logger.debug "kms_sign message(#{data.size}b)>>#{data}<<"
+        logger.debug("kms_sign message(#{data.size}b)>>#{data}<<")
         params = build_kms_params(message: data)
         kms_client.sign(params).signature
       end
 
       def kms_verify(message, signature, signing_algorithm, verification_key_id)
-        @logger.debug "kms_verify message(#{message.size}b)>>#{message}<< signature>>#{signature.size}<< alg>>#{signing_algorithm}<< key_id>>#{verification_key_id}<<"
-        params = build_kms_params(
-          message: message,
-          signature: signature,
-          key_id: verification_key_id,
-          signing_algorithm: signing_algorithm,
-        )
+        logger.debug("kms_verify message(#{message.size}b)>>#{message}<< signature>>" \
+                     "#{signature.size}<< alg>>#{signing_algorithm}<< key_id>>#{verification_key_id}<<")
+        params = build_kms_params(message: message, signature: signature,
+                                  key_id: verification_key_id,
+                                  signing_algorithm: signing_algorithm)
 
-        begin
-          kms_client.verify(params).signature_valid
-          true
-        rescue Aws::KMS::Errors::KMSInvalidSignatureException
-          false
-        end
+        kms_client.verify(params).signature_valid
+        true
+      rescue Aws::KMS::Errors::KMSInvalidSignatureException
+        false
       end
     end
   end

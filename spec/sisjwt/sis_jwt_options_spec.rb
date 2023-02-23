@@ -1,339 +1,373 @@
 # frozen_string_literal: true
 
-module Sisjwt
-  RSpec.describe SisJwtOptions do
-    describe '#production_env?' do
-      subject { SisJwtOptions.production_env? }
+RSpec.describe Sisjwt::SisJwtOptions do
+  describe '#production_env?' do
+    subject(:options) { described_class.production_env? }
+
+    it { expect(defined?(Rails)).to be_falsy }
+
+    context 'without Rails' do
+      context 'when RAILS_ENV is unset' do
+        mock_env 'RAILS_ENV', nil
+
+        it { expect(Module).not_to be_const_defined :Rails }
+        it { is_expected.to be_falsy }
+      end
+
+      context 'when RAILS_ENV=test' do
+        mock_env 'RAILS_ENV', 'test'
+
+        it { expect(Module).not_to be_const_defined(:Rails) }
+        it { is_expected.to be_falsy }
+      end
+
+      context 'when RAILS_ENV=development' do
+        mock_env 'RAILS_ENV', 'development'
+
+        it { expect(Module).not_to be_const_defined(:Rails) }
+        it { is_expected.to be_falsy }
+      end
+
+      context 'when RAILS_ENV=production' do
+        mock_env 'RAILS_ENV', 'production'
+
+        it { expect(Module).not_to be_const_defined(:Rails) }
+        it { is_expected.to be_truthy }
+      end
+    end
+
+    context 'with Rails' do
+      let(:rails) { Struct.new('Rails', :env).new }
 
       before do
-        expect(defined?(Rails)).to be_falsy
+        allow(Module).to receive(:const_defined?).with(:Rails).and_return(true)
+        allow(Module).to receive(:const_get).with(:Rails).and_return(rails)
       end
 
-      context 'w/o Rails' do
-        it 'RAILS_ENV undefined', env: 'RAILS_ENV' do
-          expect(Module.const_defined?(:Rails)).to be_falsy
-          expect(subject).to be_falsy
-        end
+      it 'Rails.env.test' do
+        rails.env = ActiveSupport::StringInquirer.new('test')
+        expect(Module).to be_const_defined(:Rails)
 
-        it 'RAILS_ENV=test', env: 'RAILS_ENV=test' do
-          expect(Module.const_defined?(:Rails)).to be_falsy
-          expect(subject).to be_falsy
-        end
-
-        it 'RAILS_ENV=development', env: 'RAILS_ENV=development' do
-          expect(Module.const_defined?(:Rails)).to be_falsy
-          expect(subject).to be_falsy
-        end
-
-        it 'RAILS_ENV=production', env: 'RAILS_ENV=production' do
-          expect(Module.const_defined?(:Rails)).to be_falsy
-          expect(subject).to be_truthy
-        end
+        expect(options).to be_falsy
       end
 
-      context '/w Rails' do
-        let(:rails) { OpenStruct.new }
-        before do
-          allow(Module).to receive(:const_defined?).with(:Rails).and_return(true)
-          allow(Module).to receive(:const_get).with(:Rails).and_return(rails)
-        end
+      it 'Rails.env.development' do
+        rails.env = ActiveSupport::StringInquirer.new('development')
+        expect(Module).to be_const_defined(:Rails)
 
-        it 'Rails.env.test' do
-          rails.env = ActiveSupport::StringInquirer.new('test')
-          expect(Module.const_defined?(:Rails)).to be_truthy
+        expect(options).to be_falsy
+      end
 
-          expect(subject).to be_falsy
-        end
+      it 'Rails.env.production' do
+        rails.env = ActiveSupport::StringInquirer.new('production')
+        expect(Module).to be_const_defined(:Rails)
 
-        it 'Rails.env.development' do
-          rails.env = ActiveSupport::StringInquirer.new('development')
-          expect(Module.const_defined?(:Rails)).to be_truthy
+        expect(options).to be_truthy
+      end
+    end
+  end
 
-          expect(subject).to be_falsy
-        end
+  describe '.valid_token_type?' do
+    context 'when in a non-production env' do
+      it 'allows v1 token type' do
+        expect(described_class).to be_valid_token_type(Sisjwt::TOKEN_TYPE_V1)
+      end
 
-        it 'Rails.env.production' do
-          rails.env = ActiveSupport::StringInquirer.new('production')
-          expect(Module.const_defined?(:Rails)).to be_truthy
-
-          expect(subject).to be_truthy
-        end
+      it 'allows dev token type' do
+        expect(described_class).to be_valid_token_type(Sisjwt::TOKEN_TYPE_DEV)
       end
     end
 
-    describe '#valid_token_type' do
-      context 'non-production env' do
-        subject { SisJwtOptions }
-
-        it 'allows v1 token type' do
-          expect(subject.valid_token_type(TOKEN_TYPE_V1)).to be_truthy
-        end
-
-        it 'allows dev token type' do
-          expect(subject.valid_token_type(TOKEN_TYPE_DEV)).to be_truthy
-        end
-      end
-
-      context 'production env' do
-        subject { SisJwtOptions }
-
-        before do
-          expect(subject).to receive(:production_env?).and_return(true)
-        end
-
-        it 'allows v1 token type' do
-          expect(subject.valid_token_type(TOKEN_TYPE_V1)).to be_truthy
-        end
-
-        it 'DOES NOT allow dev token type' do
-          expect(subject.valid_token_type(TOKEN_TYPE_DEV)).to be_falsy
-        end
-      end
-    end
-
-    describe '#defaults' do
-      let(:klass) { SisJwtOptions }
-      subject { klass.defaults }
-
-      context 'ENV overrides' do
-        it '$AWS_PROFILE', env: 'AWS_PROFILE=testToken' do
-          expect(subject.aws_profile).to eq 'testToken'
-        end
-
-        it '$AWS_REGION', env: 'AWS_REGION=testToken' do
-          expect(subject.aws_region).to eq 'testToken'
-        end
-
-        it '$SISJWT_KEY_ID', env: 'SISJWT_KEY_ID=testToken' do
-          allow(subject).to receive(:kms_configured?).and_return(true)
-          expect(subject.key_id).to eq 'testToken'
-        end
-
-        it '$SISJWT_KEY_ALG', env: 'SISJWT_KEY_ALG=testToken' do
-          allow(subject).to receive(:kms_configured?).and_return(true)
-          expect(subject.key_alg).to eq 'testToken'
-        end
-
-        it '$SISJWT_ISS', env: 'SISJWT_ISS=testToken' do
-          expect(subject.iss).to eq 'testToken'
-        end
-
-        it '$SISJWT_AUD', env: 'SISJWT_AUD=testToken' do
-          expect(subject.aud).to eq 'testToken'
-        end
-
-        it 'kms_configured?' do
-          expect(subject.kms_configured?).to be_falsy
-        end
-      end
-
-      context 'non-production env' do
-        it 'is valid' do
-          expect(subject).to be_valid
-        end
-
-        it "aws_profile = 'dev'", env: 'AWS_PROFILE' do
-          expect(subject.aws_profile).to eq 'dev'
-        end
-
-        it "aws_regions = 'us-west-2'", env: 'AWS_REGION' do
-          expect(subject.aws_region).to eq 'us-west-2'
-        end
-
-        it 'uses dev token' do
-          expect(subject.token_type == TOKEN_TYPE_DEV)
-        end
-
-        it 'uses 1h as token_lifetime' do
-          expect(subject.token_lifetime == 3_600)
-        end
-
-        it "key_id = ''", env: 'SISJWT_KEY_ID' do
-          allow(subject).to receive(:kms_configured?).and_return(true)
-          expect(subject.key_id).to be_blank
-        end
-
-        it 'key_alg = RSA', env: 'SISJWT_KEY_ALG' do
-          allow(subject).to receive(:kms_configured?).and_return(true)
-          expect(subject.key_alg).to eq 'RSASSA_PKCS1_V1_5_SHA_256'
-        end
-
-        it 'iss = SIS', env: 'SISJWT_ISS' do
-          expect(subject.iss).to eq 'SISi'
-        end
-
-        it 'aud = SIS', env: 'SISJWT_AUD' do
-          expect(subject.aud).to eq 'SISa'
-        end
-
-        it 'iat uses now' do
-          now = DateTime.now
-          allow(DateTime).to receive(:now).and_return(now)
-          expect(subject.iat).to eq now.to_f
-        end
-
-        it 'exp uses iat+token_lifetime' do
-          now = DateTime.now
-          allow(DateTime).to receive(:now).and_return(now)
-          expect(subject.exp).to eq now.to_i + subject.token_lifetime
-        end
-      end
-
-      context 'production_env' do
-        before do
-          allow(SisJwtOptions).to receive(:production_env?).and_return(true)
-        end
-
-        it 'uses v1 token' do
-          expect(subject.token_type == TOKEN_TYPE_V1)
-        end
-
-        it 'uses 1m as token_lifetime' do
-          expect(subject.token_lifetime == 60)
-        end
-
-        it "uses AWS_PROFILE=''", env: 'AWS_PROFILE' do
-          expect(subject.aws_profile).to eq ''
-        end
-
-        it 'kms_configured?' do
-          expect(subject.kms_configured?).to be_falsy
-          expect(subject.production_token_type?).to be_truthy
-          expect(subject.key_id).to be_blank
-          expect(subject.key_alg).to be_blank
-
-          subject.key_id = 'arn:token'
-          subject.key_alg = 'arn:token'
-          expect(subject.kms_configured?).to be_truthy
-        end
-      end
-    end
-
-    describe 'validations' do
-      subject { SisJwtOptions.defaults }
-
+    context 'when in a production env' do
       before do
-        subject.token_type = TOKEN_TYPE_V1
-        subject.key_id = 'arn:key'
-        subject.key_alg = 'magic'
-        subject.iss = 'SIE'
-        subject.aud = 'SIC'
+        allow(described_class).to receive(:production_env?).and_return(true)
       end
 
-      def error_msgs_for(key)
-        subject.validate
-        subject.errors.full_messages_for(key)
+      it 'allows v1 token type' do
+        expect(described_class).to be_valid_token_type(Sisjwt::TOKEN_TYPE_V1)
       end
 
-      context 'signing mode' do
-        context 'of required attrs' do
-          context 'KMS attributes' do
-            before do
-              allow(subject).to receive(:kms_configured?).and_return(true)
-            end
+      it 'DOES NOT allow dev token type' do
+        expect(described_class).not_to be_valid_token_type(Sisjwt::TOKEN_TYPE_DEV)
+      end
+    end
+  end
 
-            it 'key_alg' do
-              expect(error_msgs_for(:key_alg)).to be_empty
+  describe '#defaults' do
+    subject(:options) { klass.defaults }
 
-              subject.key_alg = nil
+    let(:klass) { described_class }
 
-              expect(error_msgs_for(:key_alg)).to_not be_empty
-            end
+    it { is_expected.not_to be_kms_configured }
 
-            it 'key_id' do
-              expect(error_msgs_for(:key_id)).to be_empty
+    context 'when AWS_PROFILE=testToken' do
+      mock_env 'AWS_PROFILE', 'testToken'
+      it { expect(options.aws_profile).to eq 'testToken' }
+    end
 
-              subject.key_id = nil
+    context 'when AWS_REGION=testToken' do
+      mock_env 'AWS_REGION', 'testToken'
+      it { expect(options.aws_region).to eq 'testToken' }
+    end
 
-              expect(error_msgs_for(:key_id)).to_not be_empty
-            end
+    context 'when SISJWT_KEY_ID=testToken' do
+      mock_env 'SISJWT_KEY_ID', 'testToken'
+      mock_kms configured: true
 
-            it 'aws_region' do
-              expect(error_msgs_for(:aws_region)).to be_empty
+      it { expect(options.key_id).to eq 'testToken' }
+    end
 
-              subject.aws_region = nil
+    context 'when SISJWT_KEY_ALG=testToken' do
+      mock_env 'SISJWT_KEY_ALG', 'testToken'
+      mock_kms configured: true
 
-              expect(error_msgs_for(:aws_region)).to_not be_empty
-            end
+      it { expect(options.key_alg).to eq 'testToken' }
+    end
+
+    context 'when SISJWT_ISS=testToken' do
+      mock_env 'SISJWT_ISS', 'testToken'
+      it { expect(options.iss).to eq 'testToken' }
+    end
+
+    context 'when SISJWT_AUD=testToken' do
+      mock_env 'SISJWT_AUD', 'testToken'
+      it { expect(options.aud).to eq 'testToken' }
+    end
+
+    context 'when in a non-production environment' do
+      let(:now) { DateTime.now }
+
+      it { is_expected.to be_valid }
+
+      it 'uses dev token' do
+        expect(options.token_type).to be Sisjwt::TOKEN_TYPE_DEV
+      end
+
+      it 'uses 1h as token_lifetime' do
+        expect(options.token_lifetime).to be 3_600
+      end
+
+      it 'iat uses now' do
+        allow(DateTime).to receive(:now).and_return(now)
+        expect(options.iat).to eq now.to_f
+      end
+
+      it 'exp uses iat+token_lifetime' do
+        now = DateTime.now
+        allow(DateTime).to receive(:now).and_return(now)
+        expect(options.exp).to eq now.to_i + options.token_lifetime
+      end
+
+      context 'when AWS_PROFILE is unset' do
+        mock_env 'AWS_PROFILE', nil
+
+        it "aws_profile defaults to 'dev'" do
+          expect(options.aws_profile).to eq 'dev'
+        end
+      end
+
+      context 'when AWS_REGION is unset' do
+        mock_env 'AWS_REGION', nil
+
+        it "aws_region defaults to 'us-west-2'" do
+          expect(options.aws_region).to eq 'us-west-2'
+        end
+      end
+
+      context 'when SISJWT_KEY_ID is unset' do
+        mock_env 'SISJWT_KEY_ID', nil
+        mock_kms configured: true
+
+        it "key_id defaults to ''" do
+          expect(options.key_id).to be_blank
+        end
+      end
+
+      context 'when SISJWT_KEY_ALG is unset' do
+        mock_env 'SISJWT_KEY_ALG', nil
+        mock_kms configured: true
+
+        it "key_alg defaults to 'RSA'" do
+          expect(options.key_alg).to eq 'RSASSA_PKCS1_V1_5_SHA_256'
+        end
+      end
+
+      context 'when SISJWT_ISS is unset' do
+        mock_env 'SISJWT_ISS', nil
+
+        it 'iss defaults to "SISi"' do
+          expect(options.iss).to eq 'SISi'
+        end
+      end
+
+      context 'when SISJWT_AUD is unset' do
+        mock_env 'SISJWT_AUD', nil
+
+        it 'aud defaults to "SISa"' do
+          expect(options.aud).to eq 'SISa'
+        end
+      end
+    end
+
+    context 'when in a production_env' do
+      before do
+        allow(described_class).to receive(:production_env?).and_return(true)
+      end
+
+      it 'uses v1 token' do
+        expect(options.token_type).to be Sisjwt::TOKEN_TYPE_V1
+      end
+
+      it 'uses 1m as token_lifetime' do
+        expect(options.token_lifetime).to be 60
+      end
+
+      it 'is not kms_configured' do
+        expect(options.key_id).to be_blank
+        expect(options.key_alg).to be_blank
+        expect(options).not_to be_kms_configured
+        expect(options).to be_production_token_type
+      end
+
+      context 'when key_id and key_alg are set' do
+        before do
+          options.key_id = 'arn:token'
+          options.key_alg = 'arn:token'
+        end
+
+        it 'is kms_configured' do
+          expect(options).to be_kms_configured
+        end
+      end
+
+      context 'when AWS_PROFILE is unset' do
+        mock_env 'AWS_PROFILE', nil
+        it { expect(options.aws_profile).to eq '' }
+      end
+    end
+  end
+
+  describe 'validations' do
+    subject(:options) { described_class.defaults }
+
+    before do
+      options.token_type = Sisjwt::TOKEN_TYPE_V1
+      options.key_id = 'arn:key'
+      options.key_alg = 'magic'
+      options.iss = 'SIE'
+      options.aud = 'SIC'
+    end
+
+    def error_msgs_for(key)
+      options.validate
+      options.errors.full_messages_for(key)
+    end
+
+    context 'when in signing mode' do
+      context 'with required attrs' do
+        context 'with KMS attributes' do
+          mock_kms configured: true
+
+          it 'key_alg' do
+            expect(error_msgs_for(:key_alg)).to be_empty
+
+            options.key_alg = nil
+
+            expect(error_msgs_for(:key_alg)).not_to be_empty
           end
 
-          it 'token_lifetime' do
-            expect(error_msgs_for(:token_lifetime)).to be_empty
+          it 'key_id' do
+            expect(error_msgs_for(:key_id)).to be_empty
 
-            subject.token_lifetime = nil
+            options.key_id = nil
 
-            expect(error_msgs_for(:token_lifetime)).to_not be_empty
+            expect(error_msgs_for(:key_id)).not_to be_empty
           end
 
-          it 'iss' do
-            expect(error_msgs_for(:iss)).to be_empty
+          it 'aws_region' do
+            expect(error_msgs_for(:aws_region)).to be_empty
 
-            subject.iss = nil
+            options.aws_region = nil
 
-            expect(error_msgs_for(:iss)).to_not be_empty
-          end
-
-          it 'aud' do
-            expect(error_msgs_for(:aud)).to be_empty
-
-            subject.aud = nil
-
-            expect(error_msgs_for(:aud)).to_not be_empty
+            expect(error_msgs_for(:aws_region)).not_to be_empty
           end
         end
 
-        it "doesn't allow ISS==AUD" do
-          expect(error_msgs_for(:aud)).to be_empty
+        it 'token_lifetime' do
+          expect(error_msgs_for(:token_lifetime)).to be_empty
+
+          options.token_lifetime = nil
+
+          expect(error_msgs_for(:token_lifetime)).not_to be_empty
+        end
+
+        it 'iss' do
           expect(error_msgs_for(:iss)).to be_empty
 
-          subject.iss = subject.aud
+          options.iss = nil
 
+          expect(error_msgs_for(:iss)).not_to be_empty
+        end
+
+        it 'aud' do
           expect(error_msgs_for(:aud)).to be_empty
-          expect(error_msgs_for(:iss)).to_not be_empty
+
+          options.aud = nil
+
+          expect(error_msgs_for(:aud)).not_to be_empty
+        end
+      end
+
+      it "doesn't allow ISS==AUD" do
+        expect(error_msgs_for(:aud)).to be_empty
+        expect(error_msgs_for(:iss)).to be_empty
+
+        options.iss = options.aud
+
+        expect(error_msgs_for(:aud)).to be_empty
+        expect(error_msgs_for(:iss)).not_to be_empty
+      end
+
+      it 'requires numeric exp' do
+        expect(error_msgs_for(:exp)).to be_empty
+
+        options.exp = '1d'
+
+        expect(error_msgs_for(:exp)).not_to be_empty
+      end
+
+      it 'requires exp is after iat' do
+        expect(error_msgs_for(:exp)).to be_empty
+
+        options.exp = options.iat - 3_600
+
+        expect(error_msgs_for(:exp)).not_to be_empty
+      end
+
+      context 'with a token / production config' do
+        before do
+          allow(options.class).to receive(:production_env?).and_return(true)
+          options.token_type = Sisjwt::TOKEN_TYPE_V1
         end
 
-        it 'requires numeric exp' do
-          expect(error_msgs_for(:exp)).to be_empty
+        it "doesn't allow dev tokens to be issued" do
+          expect(error_msgs_for(:token_type)).to be_empty
 
-          subject.exp = '1d'
+          options.token_type = Sisjwt::TOKEN_TYPE_DEV
 
-          expect(error_msgs_for(:exp)).to_not be_empty
+          expect(error_msgs_for(:token_type)).not_to be_empty
         end
 
-        it 'requires exp is after iat' do
-          expect(error_msgs_for(:exp)).to be_empty
+        it 'KMS configured check' do
+          expect(error_msgs_for(:base)).to be_empty
+          expect(options).to be_kms_configured
 
-          subject.exp = subject.iat - 3_600
+          # Will break KMS Setup
+          options.key_id = nil
 
-          expect(error_msgs_for(:exp)).to_not be_empty
+          expect(options).not_to be_kms_configured
+          expect(error_msgs_for(:base)).not_to be_empty
         end
-
-        context 'token / production config' do
-          before do
-            allow(subject.class).to receive(:production_env?).and_return(true)
-            subject.token_type = TOKEN_TYPE_V1
-          end
-
-          it "doesn't allow dev tokens to be issued" do
-            expect(error_msgs_for(:token_type)).to be_empty
-
-            subject.token_type = TOKEN_TYPE_DEV
-
-            expect(error_msgs_for(:token_type)).to_not be_empty
-          end
-
-          it 'KMS configured check' do
-            expect(error_msgs_for(:base)).to be_empty
-            expect(subject.kms_configured?).to be_truthy
-
-            # Will break KMS Setup
-            subject.key_id = nil
-
-            expect(subject.kms_configured?).to be_falsy
-            expect(error_msgs_for(:base)).to_not be_empty
-          end
-        end
-
       end
     end
   end

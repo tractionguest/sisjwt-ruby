@@ -12,6 +12,14 @@ AllCops:
 ################################################################################
 # Individual cop configurations
 ################################################################################
-
 Layout/LineLength:
   Max: 120
+
+RSpec/MultipleExpectations:
+  Max: 5
+
+RSpec/MultipleMemoizedHelpers:
+  Max: 20
+
+RSpec/NestedGroups:
+  Max: 5

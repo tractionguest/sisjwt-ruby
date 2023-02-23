@@ -1,24 +1,18 @@
 # frozen_string_literal: true
-RSpec.configure do |config|
-  config.around(:example, :env) do |example|
-    env_meta = Array(example.metadata[:env])
-    orig_values = {}
 
-    env_meta.each do |entry|
-      key, value = entry.split('=', 2)
+module EnvExampleGroupHelpers
+  def mock_env(name, value)
+    around do |example|
+      pre_exist = ENV.key?(name)
+      old_value = ENV.fetch(name, nil)
 
-      orig_values[key] = ENV[key]
-      if value.nil?
-        ENV.delete(key)
-      else
-        ENV[key] = value
-      end
-    end
-
-    example.run
-
-    orig_values.each do |key, orig_value|
-      ENV[key] = orig_value
+      value ? ENV[name] = value : ENV.delete(name)
+      example.call
+      pre_exist ? ENV[name] = old_value : ENV.delete(name)
     end
   end
+end
+
+RSpec.configure do |config|
+  config.extend EnvExampleGroupHelpers
 end
