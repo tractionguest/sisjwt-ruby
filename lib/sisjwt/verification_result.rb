@@ -89,18 +89,18 @@ module Sisjwt
       mark_dirty!
     end
 
-    def add_allowed_aud(allowed_aud)
-      return unless allowed_aud.present? || allowed_aud.include?(allowed_aud)
+    def add_allowed_aud(aud)
+      return if aud.blank? || allowed_aud.include?(aud)
 
-      allowed_aud << allowed_aud
+      allowed_aud << aud
       allowed_aud.flatten!
       mark_dirty!
     end
 
-    def add_allowed_iss(allowed_iss)
-      return unless allowed_iss.present? || allowed_iss.include?(allowed_iss)
+    def add_allowed_iss(iss)
+      return if iss.blank? || allowed_iss.include?(iss)
 
-      allowed_iss << allowed_iss
+      allowed_iss << iss
       allowed_iss.flatten!
       mark_dirty!
     end

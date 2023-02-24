@@ -71,4 +71,28 @@ RSpec.describe Sisjwt::VerificationResult do
       end
     end
   end
+
+  describe '#add_allowed_aud' do
+    it 'changes allowed_aud' do
+      expect { result.add_allowed_aud(:test) }.to \
+        change(result, :allowed_aud).from([]).to([:test])
+    end
+
+    it 'is included in to_h' do
+      expect { result.add_allowed_aud(:test) }.to \
+        change(result, :to_h).to(include(allowed: include(aud: [:test])))
+    end
+  end
+
+  describe '#add_allowed_iss' do
+    it 'changes allowed_iss' do
+      expect { result.add_allowed_iss(:test) }.to \
+        change(result, :allowed_iss).from([]).to([:test])
+    end
+
+    it 'is included in to_h' do
+      expect { result.add_allowed_iss(:test) }.to \
+        change(result, :to_h).to(include(allowed: include(iss: [:test])))
+    end
+  end
 end
