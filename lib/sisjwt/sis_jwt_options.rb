@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'sisjwt/sis_jwt_options/validations'
+
 module Sisjwt
   # Options to control the behavior of {SisJwt}.
   class SisJwtOptions
