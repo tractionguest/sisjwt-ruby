@@ -118,10 +118,10 @@ module Sisjwt
         payload: payload,
         allowed: {
           aud: allowed_aud,
-          iss: allowed_iss
+          iss: allowed_iss,
         },
         valid: valid?,
-        errors: errors
+        errors: errors,
       }
     end
 

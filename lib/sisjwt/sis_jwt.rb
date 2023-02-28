@@ -81,7 +81,7 @@ module Sisjwt
       @encode_headers ||= {
         alg: options.token_type,
         kid: options.key_id,
-        AWS_ALG: options.key_alg
+        AWS_ALG: options.key_alg,
       }.compact
     end
 

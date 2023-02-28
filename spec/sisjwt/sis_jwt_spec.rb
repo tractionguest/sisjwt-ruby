@@ -141,7 +141,7 @@ RSpec.describe Sisjwt::SisJwt do
           {
             alg: Sisjwt::TOKEN_TYPE_V1,
             kid: options.key_id,
-            AWS_ALG: options.key_alg
+            AWS_ALG: options.key_alg,
           }
         end
 

@@ -87,7 +87,7 @@ module Sisjwt
                        "profile: #{options.aws_profile})")
           Aws::KMS::Client.new(
             region: options.aws_region,
-            profile: options.aws_profile
+            profile: options.aws_profile,
           )
         end
       end
@@ -104,7 +104,7 @@ module Sisjwt
         {
           key_id: options.key_id,
           signing_algorithm: options.key_alg,
-          message_type: 'RAW'
+          message_type: 'RAW',
         }.merge(params)
       end
 

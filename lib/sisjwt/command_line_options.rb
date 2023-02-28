@@ -12,7 +12,7 @@ module Sisjwt
       2 => Logger::ERROR,
       3 => Logger::WARN,
       4 => Logger::INFO,
-      5 => Logger::DEBUG
+      5 => Logger::DEBUG,
     }.freeze
 
     attr_reader :app

@@ -86,7 +86,7 @@ module Sisjwt
       %w[Errors:].concat(
         errors.messages.flat_map do |attr, errors|
           errors.map { |error| "\t#{attr} #{error}" }
-        end
+        end,
       ).join('\n')
     end
 
@@ -119,7 +119,7 @@ module Sisjwt
 
     def production_token_type?
       [
-        TOKEN_TYPE_V1
+        TOKEN_TYPE_V1,
       ].include?(@token_type)
     end
 
