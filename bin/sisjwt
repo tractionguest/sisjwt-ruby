@@ -5,8 +5,8 @@ require 'bundler'
 Bundler.require(:default, :development)
 require 'sisjwt'
 
+@logger = Logger.new($stderr, progname: 'sisjwt', level: :warn)
 app = Sisjwt::CommandLine.from_options!(logger: @logger)
-@logger = app.logger
 
 # Validation
 if (msg = app.error_messages).present?
