@@ -68,6 +68,29 @@ $ pbpaste | bundle exec bin/sisjwt verify --iss=sic --aud=sie - | jq .
 
 NOTE: The `lifetime` key will not be returned if running in a production environment.
 
+## ARN Inventory
+
+You can specify an ARN inventory that lists which KMS Key ARNs are allowed as issuers.  If an inventory file is specified then these key ARNs will be verified against the inventory and not allowed if there isn't an explicit match listed in the inventory file.
+
+You can control which section is read using the `SISJWT_ARN_MODE` environment variable, if not specified then it will default back to `RAILS_ENV`, or `development`.
+
+
+```yaml
+devkube:
+  sie:
+    - arn:a
+    - arn:b
+  sic:
+    - arn:c
+    - arn:d
+production:
+  sie:
+    - arn:1
+    - arn:2
+  sic:
+    - arn:3
+    - arn:4
+```
 
 ## Development
 

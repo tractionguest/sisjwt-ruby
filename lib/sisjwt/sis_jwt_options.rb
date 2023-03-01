@@ -9,7 +9,7 @@ module Sisjwt
 
     VALID_MODES = %i[sign verify].freeze
 
-    attr_reader :mode
+    attr_reader :mode, :arn_inventory
     attr_writer :exp, :iat, :key_alg, :key_id, :token_type
     attr_accessor :aws_region, :aws_profile, :token_lifetime, :iss, :aud
 
@@ -68,6 +68,7 @@ module Sisjwt
     # @param mode [Symbol] One of {VALID_MODES}.
     def initialize(mode: :sign)
       @mode = mode
+      @arn_inventory = ArnInventory.new
       raise ArgumentError, "invalid mode: #{mode}" unless VALID_MODES.include?(mode)
     end
 

@@ -14,7 +14,8 @@ module Sisjwt
       new(nil, nil, error: msg)
     end
 
-    def initialize(headers, payload, error: nil)
+    def initialize(headers, payload, error: nil, options: nil)
+      @options = options
       @headers = (headers || {}).freeze
       @payload = (payload || {}).freeze
       @jwt_error = error
@@ -41,6 +42,14 @@ module Sisjwt
       errors.add(:base, 'Token is expired') if expired?
       errors.add(:iss, 'not on the approved list') unless allowed_iss.include?(iss)
       errors.add(:aud, 'not on the approved list') unless allowed_aud.include?(aud)
+
+      unless @options&.arn_inventory.blank?
+        arn_inventory = @options&.arn_inventory
+
+        unless arn_inventory.valid_arn?(allowed_iss, @headers['kid'])
+          errors.add(:iss, 'not signed with an approved key')
+        end
+      end
     end
 
     # @return [Time] When the token expires.

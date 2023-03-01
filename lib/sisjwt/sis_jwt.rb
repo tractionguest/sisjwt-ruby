@@ -35,7 +35,7 @@ module Sisjwt
     def verify(token)
       logger.debug "SISJWT-verify: #{token}"
       payload, headers = decode_jwt(token)
-      VerificationResult.new(headers, payload).tap do |ret|
+      VerificationResult.new(headers, payload, options: options).tap do |ret|
         logger.debug("SISJWT-verifed: #{ret.inspect}")
       end
     rescue JWT::DecodeError => e

@@ -1,0 +1,22 @@
+test:
+  sie:
+    - arn:A
+  sic:
+    - arn:C
+
+devkube:
+  sie:
+    - arn:a
+    - arn:b
+  sic:
+    - arn:c
+    - arn:d
+
+production:
+  sie:
+    - arn:1
+    - arn:2
+  sic:
+    - arn:3
+    - arn:4
+

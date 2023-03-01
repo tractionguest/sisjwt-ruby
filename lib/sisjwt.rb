@@ -13,4 +13,6 @@ module Sisjwt
   TOKEN_TYPE_V1 = 'SISKMS1.0'
 
   Error = Class.new(StandardError)
+  FileNotFoundError = Class.new(Error)
+  InventoryFileError = Class.new(Error)
 end
