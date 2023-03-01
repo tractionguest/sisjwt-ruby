@@ -1,5 +1,16 @@
-require_relative "sisjwt/sis_jwt"
-require_relative "sisjwt/sis_jwt_options"
-require_relative "sisjwt/verification_result"
-require_relative "sisjwt/version"
-require_relative 'algo/sis_jwt_v1'
+# frozen_string_literal: true
+
+require 'active_model'
+require 'active_support'
+require 'active_support/core_ext'
+require 'zeitwerk'
+
+loader = Zeitwerk::Loader.for_gem
+loader.setup
+
+module Sisjwt
+  TOKEN_TYPE_DEV = 'SISKMSd'
+  TOKEN_TYPE_V1 = 'SISKMS1.0'
+
+  Error = Class.new(StandardError)
+end

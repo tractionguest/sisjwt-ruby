@@ -1,236 +1,37 @@
 #!/usr/bin/env ruby
-require "active_support/core_ext"
-require "bundler"
-require "date"
-require "optparse"
-require 'rubygems'
+# frozen_string_literal: true
 
+require 'bundler'
 Bundler.require(:default, :development)
-require "sisjwt"
+require 'sisjwt'
 
-VERBOSITY_LEVELS = {
-  0 => Logger::UNKNOWN,
-  1 => Logger::FATAL,
-  2 => Logger::ERROR,
-  3 => Logger::WARN,
-  4 => Logger::INFO,
-  5 => Logger::DEBUG,
-}.freeze
+@logger = Logger.new($stderr, progname: 'sisjwt', level: :warn)
+app = Sisjwt::CommandLine.from_options!(logger: @logger)
 
-def convert_verbosity_level_to_log_level(verb_level)
-  VERBOSITY_LEVELS[verb_level.to_i].to_i
+# Validation
+if (msg = app.error_messages).present?
+  if app.strict_mode
+    @logger.fatal(msg)
+    exit 1
+  else
+    @logger.warn(msg)
+  end
 end
 
-def convert_log_level_to_verbosity_level(log_level)
-  verb_level, _ = VERBOSITY_LEVELS.detect { |_, v| v == log_level }
-  verb_level.to_i
-end
-
-
-class App
-  attr_accessor :strict_mode, :jwt_opts, :logger
-  # attr_accessor :token_type, :key_alg, :key, :aws_region
-  # attr_accessor :token_lifetime, :iss, :aud, :iat, :exp
-  (
-    %i(token_type key_alg key_id aws_region token_lifetime iss aud iat exp) +
-    %i(token_type= key_alg= key_id= aws_region= token_lifetime= iss= aud= iat= exp=) +
-    %i(validate valid? errors error_messages)
-  ).each do |m|
-    delegate m, to: :jwt_opts
+# Command Processing
+if ARGV[0] == 'debug'
+  @logger.debug! # <-- Force logger into debug mode for debug output
+  @logger.debug("ARGS ->#{app.to_h}<-")
+  x = 0
+  while (arg = ARGV.shift)
+    @logger.debug("Shift[#{x}]->#{arg}")
+    x += 1
   end
-
-  def initialize(logger: nil)
-    @jwt_opts = ::Sisjwt::SisJwtOptions.defaults(mode: :verify)
-    @strict_mode = true
-    @logger = logger || Logger.new($stderr, level: :warn)
-    @logger.debug "Is Prod: #{production?}"
-  end
-
-  def to_h
-    {
-      production: production?,
-      token_type: token_type,
-      key_alg: key_alg,
-      key_id: key_id,
-      aws_region: aws_region,
-      token_lifetime: token_lifetime,
-      iss: iss,
-      aud: aud,
-      iat: iat,
-      exp: exp,
-    }
-  end
-
-  def production?
-    @jwt_opts.class.production_env?
-  end
-
-  # Transforms array like:
-  #    [ "k=v", "val", "other=opt" ]
-  # into
-  #    { "k" => "v", "val" => nil, "other" => "opt" }
-  def array_to_hash(array)
-    array.map do |v|
-      k,v = v.split("=", 2)
-      [k.strip, v&.strip]
-    end.to_h.with_indifferent_access
-  end
-
-  def sign_token(args = ARGV)
-    @logger.info "SIGN TOKEN"
-    args = array_to_hash(args) if args.is_a?(Array)
-
-    @logger.debug "config: #{to_h}"
-    @logger.debug  "  args: #{args}"
-
-    sisjwt = ::Sisjwt::SisJwt.new(@jwt_opts, logger: @logger)
-    token = sisjwt.encode(args)
-
-    # We explictitly do not use logger here because we want it to goto stdout
-    $stdout.puts token
-  end
-
-  def verify_token(token = ARGV[0])
-    @logger.info "VERIFY TOKEN"
-
-    if token == "-"
-      @logger.debug "Reading token from stdin..."
-      token = $stdin.read
-    end
-
-    @logger.debug "config: #{to_h}"
-    @logger.debug " token: #{token}"
-
-    sisjwt = ::Sisjwt::SisJwt.new(@jwt_opts, logger: @logger)
-    verification = sisjwt.verify(token)
-    verification.add_allowed_aud(aud)
-    verification.add_allowed_iss(iss)
-
-    # We explictitly do not use logger here because we want it to goto stdout
-    $stdout.puts verification.to_json
-  end
-
-  ################################################################################
-  # Option Parsing
-  ################################################################################
-
-  # Creates a new App instance from given options
-  def self.from_options!(options=ARGV, logger: nil)
-    app = App.new(logger: logger)
-
-    opt_parser = OptionParser.new do |opts|
-      opts.banner = "sisjwt - Sign in Solutions JWT Generator"
-
-      opts.on("--[no-]strict-mode", "Turn off strict mode to allow specifying invalid values, default strict: #{app.strict_mode}") do |v|
-        app.strict_mode = v
-      end
-
-      opts.on("--verbose=LEVEL", "Set the verbosity level, 1-5. The higher the number the more verbose") do |v|
-        app.logger.level = convert_verbosity_level_to_log_level[v]
-        app.logger.warn "Verbosity FLAG; level=#{app.logger.level}"
-      end
-
-      default_vebosity_level = convert_log_level_to_verbosity_level(app.logger.level)
-      opts.on("-v", "Increase the verbosity. Can specify more than once. Default is -#{'v'*default_vebosity_level}; use --verbose if you wish to set a lower value.") do |v|
-        current_vebosity_level = convert_log_level_to_verbosity_level(app.logger.level)
-        if current_vebosity_level < VERBOSITY_LEVELS.size - 1
-          new_verbosity_level = current_vebosity_level + 1
-          app.logger.level = convert_verbosity_level_to_log_level(new_verbosity_level)
-          app.logger.debug "Verbosity FLAG; level=#{current_vebosity_level} logl=#{app.logger.level}"
-        else
-          app.logger.warn "NOT increasing verbosity; already at higest level=#{current_vebosity_level}"
-        end
-      end
-
-      opts.on("-s", "--silent", "Do not output any logs or anything that is not data.  Same as --verbose=0") do |v|
-        app.logger.level = Logger::UNKNOWN
-      end
-
-      opts.on("-t", "--type=val", "Type of Token to Generate, default #{app.token_type}") do |v|
-        app.token_type = v
-      end
-
-      opts.on("-a", "--alg=val", "KMS Algorithm to use to sign the token, default #{app.key_alg}") do |v|
-        app.key_alg = v
-      end
-
-      opts.on("-r", "--region=val", "KMS Region to use to sign the token, default #{app.aws_region}") do |v|
-        app.aws_region = v
-      end
-
-      opts.on("-e", "--expires=secs", OptionParser::DecimalInteger, "Number of seconds that the key should be valid for (used to calculate `exp` value), default #{app.token_lifetime}s") do |v|
-        app.aws_region = v.to_i
-      end
-
-      opts.on "--aud=VAL", "Token AUDience (Should be SIS company acronym: SIE, SIC, etc), default #{app.aud}" do |v|
-        app.aud = v
-      end
-
-      opts.on("--iss=VAL", "Token ISSuer (Should be SIS company acronym: SIE, SIC, etc), default #{app.iss}") do |v|
-        app.iss = v
-      end
-
-      opts.on("--exp=VAL", OptionParser::DecimalInteger, "Token EXPiration, unix time, default #{app.exp}") do |v|
-        app.exp = v
-      end
-
-      opts.on("--ttl=VAL", OptionParser::DecimalInteger, "Token Time To Live, seconds, default #{app.token_lifetime}s") do |v|
-        app.exp = v
-      end
-    end
-    opt_parser.parse!(options)
-    app.validate
-    app.logger.debug "Strict Mode: #{app.strict_mode}"
-    app.logger.debug " Opts Valid: #{app.valid?}"
-
-    if ARGV.empty?
-      $stderr.puts opt_parser.help
-      exit 2
-    end
-    app
-  end
+  @logger.debug("\nValid: #{app.valid?}")
+  exit 127
 end
 
 ################################################################################
 # Main
 ################################################################################
-default_verbosity_level = ENV.fetch("SISJWT_VERBOSE", convert_log_level_to_verbosity_level(Logger::WARN))
-@logger = Logger.new($stderr, progname: 'sisjwt', level: convert_verbosity_level_to_log_level(default_verbosity_level))
-
-app = App.from_options!(ARGV, logger: @logger)
-
-# Validation
-if (msg = app.error_messages).present?
-  if app.strict_mode
-    @logger.fatal msg
-    exit 1
-  else
-    @logger.warn msg
-  end
-end
-
-# Command Processing
-if ARGV[0] == "debug"
-  @logger.debug! # <-- Force logger into debug mode for debug output
-  @logger.debug "ARGS ->#{app.to_h}<-"
-  x=0
-  while arg=ARGV.shift
-    @logger.debug "Shift[#{x}]->#{arg}"
-    x += 1
-  end
-  @logger.debug "\nValid: #{app.valid?}"
-  exit 127
-end
-
-cmd = ARGV.shift
-case cmd
-when "sign"
-  @logger.progname = "#{@logger.progname}-#{cmd}"
-  app.sign_token
-when "verify"
-  @logger.progname = "#{@logger.progname}-#{cmd}"
-  app.verify_token
-else
-  @logger.fatal "Unknown command: #{cmd}"
-  exit 1
-end
+app.call(ARGV.shift)
