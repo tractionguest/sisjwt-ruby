@@ -15,7 +15,14 @@ module Sisjwt
 
     class << self
       def valid_token_type?(token_type)
-        [TOKEN_TYPE_V1, (TOKEN_TYPE_DEV unless production_env?)].compact.include?(token_type)
+        @allowed_tokens ||= begin
+          dev_token_override ||= ENV.fetch('SISJWT_UNSAFE_ALLOW_DEV_TOKEN_IN_PROD', "false") =~ /^\s*(y|yes|t|true|1)\s*$/i
+          [
+            TOKEN_TYPE_V1,
+            (TOKEN_TYPE_DEV if dev_token_override || !production_env?),
+          ].compact
+        end
+        @allowed_tokens.include?(token_type)
       end
 
       def current
