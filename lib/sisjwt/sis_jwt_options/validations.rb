@@ -37,7 +37,7 @@ module Sisjwt
           # token_type / config
           errors.add(:token_type, "(#{token_type}) is not a valid token type!") unless token_type =~ /^SISKMS/
 
-          if SisJwtOptions.production_env?
+          if Runtime.production_env?
             unless production_token_type?
               errors.add(:base, 'Can not issue non-production tokens in a production environment')
             end

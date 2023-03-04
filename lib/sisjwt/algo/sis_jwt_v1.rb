@@ -32,7 +32,7 @@ module Sisjwt
       # Needed by jwt to be considered an algorithim
       def valid_alg?(alg_to_validate)
         # alg_to_validate == alg
-        SisJwtOptions.valid_token_type?(alg_to_validate)
+        Runtime.valid_token_type?(alg_to_validate)
       end
 
       # Needed by jwt to be considered an algorithim

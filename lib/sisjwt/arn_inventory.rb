@@ -11,18 +11,16 @@ module Sisjwt
     # @param path [string]
     # @param env [string]
     def add_from_config(path, env: nil)
-      path = Pathname.new(path)
-      raise FileNotFoundError(path) unless path.file?
+      path = Pathname(path)
+      raise FileNotFoundError, path unless path.file?
 
-      env ||= ENV.fetch("RAILS_ENV", "development")
-      config_file = YAML.load(File.read(path)).with_indifferent_access
+      env ||= ENV.fetch('RAILS_ENV', 'development')
+      config_file = YAML.safe_load(File.read(path)).with_indifferent_access
 
-      unless config_file.has_key?(env)
-        raise InventoryFileError("Could not find requested environment (#{env}) in inventory file #{path}")
+      unless config_file.key?(env)
+        raise InventoryFileError, "Could not find requested environment (#{env}) in inventory file #{path}"
       end
-      unless config_file[env].is_a?(Hash)
-        raise InventoryFileError("Inventory file is malformed!")
-      end
+      raise InventoryFileError, 'Inventory file is malformed!' unless config_file[env].is_a?(Hash)
 
       @inventory = config_file[env]
     end
@@ -36,8 +34,7 @@ module Sisjwt
     # @param arn [string]
     # @return [boolean]
     def valid_arn?(issuer, arn)
-      return false unless @inventory.has_key?(issuer)
-      @inventory[issuer].include?(arn)
+      @inventory.key?(issuer) && @inventory[issuer].include?(arn)
     end
 
     # @param arn [string]

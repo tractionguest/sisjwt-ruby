@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    sisjwt (0.2.0)
+    sisjwt (0.2.2)
       activemodel (~> 6.0.5)
       activesupport (~> 6.0.5)
       aws-sdk-kms (~> 1)

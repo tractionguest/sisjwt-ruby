@@ -14,17 +14,6 @@ module Sisjwt
     attr_accessor :aws_region, :aws_profile, :token_lifetime, :iss, :aud
 
     class << self
-      def valid_token_type?(token_type)
-        @allowed_tokens ||= begin
-          dev_token_override ||= ENV.fetch('SISJWT_UNSAFE_ALLOW_DEV_TOKEN_IN_PROD', "false") =~ /^\s*(y|yes|t|true|1)\s*$/i
-          [
-            TOKEN_TYPE_V1,
-            (TOKEN_TYPE_DEV if dev_token_override || !production_env?),
-          ].compact
-        end
-        @allowed_tokens.include?(token_type)
-      end
-
       def current
         @current ||= defaults
       end
@@ -36,34 +25,18 @@ module Sisjwt
         end
       end
 
-      # @return [Boolean] Are we running in a production environment?
-      def production_env?
-        # This is complex for a reason:
-        # It isn't a clear distinction on what to use in which order, so *if* we
-        # have Rails available (the primary, but not exclusive, use case) then
-        # we offload the problem to Rails and let thier core devs deal with that
-        # problem. It is written like this so it can easily be tested.
-        if Module.const_defined?(:Rails)
-          rails = Module.const_get(:Rails)
-          return true if rails.respond_to?(:env) && rails.env.production?
-        end
-
-        env = ENV.fetch('RAILS_ENV', nil)
-        env.present? && env.downcase.strip == 'production'
-      end
-
       private
 
       def assign_options(opts)
-        opts.token_type = production_env? ? TOKEN_TYPE_V1 : TOKEN_TYPE_DEV
-        opts.token_lifetime = (production_env? ? 60 : 3_600).to_i
+        opts.token_type = Runtime.token_type
+        opts.token_lifetime = Runtime.token_lifetime
         opts.iat = nil
         opts.exp = nil
         assign_env_options(opts)
       end
 
       def assign_env_options(opts)
-        opts.aws_profile = ENV.fetch('AWS_PROFILE', (production_env? ? '' : 'dev'))
+        opts.aws_profile = Runtime.aws_profile
         opts.aws_region = ENV.fetch('AWS_REGION', 'us-west-2')
         opts.key_id = ENV.fetch('SISJWT_KEY_ID', nil)
         opts.key_alg = ENV.fetch('SISJWT_KEY_ALG', 'RSASSA_PKCS1_V1_5_SHA_256')
@@ -132,7 +105,7 @@ module Sisjwt
     end
 
     def valid_token_type?
-      self.class.valid_token_type?(@token_type)
+      Runtime.valid_token_type?(@token_type)
     end
 
     # Are all the values requried to make a KMS call configured?

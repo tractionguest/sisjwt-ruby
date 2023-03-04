@@ -78,7 +78,7 @@ module Sisjwt
 
     def to_h
       @to_h ||=
-        if SisJwtOptions.production_env?
+        if Runtime.production_env?
           build_hash
         else
           build_hash.merge(lifetime: dev_lifetime)
