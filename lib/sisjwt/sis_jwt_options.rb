@@ -95,7 +95,7 @@ module Sisjwt
     end
 
     def dev_token_in_prod?
-      self.class.production_env? && @token_type == TOKEN_TYPE_DEV
+      Runtime.production_env? && @token_type == TOKEN_TYPE_DEV
     end
 
     def production_token_type?

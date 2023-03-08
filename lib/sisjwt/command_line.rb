@@ -57,7 +57,7 @@ module Sisjwt
     end
 
     def production?
-      jwt_opts.class.production_env?
+      Runtime.production_env?
     end
 
     # Transforms array like:
