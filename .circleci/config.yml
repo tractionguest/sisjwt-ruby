@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   build:
     docker:
-      - image: ruby:2.6.10
+      - image: circleci/ruby:2.7.4-buster-node
     steps:
       - checkout
       - run:
