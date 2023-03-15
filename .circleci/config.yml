@@ -8,6 +8,7 @@ jobs:
       - run:
           name: Run the default task
           command: |
-            gem install bundler -v 2.3.24
+            ruby --version
+            gem install bundler -v 2.4.4
             bundle install
             bundle exec rake
