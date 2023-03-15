@@ -60,6 +60,20 @@ RSpec.describe Sisjwt::ArnInventory do
         end
       end
     end
+
+    context 'ERB parsing' do
+      let(:inventory_config_path) { 'spec/support/fixtures/arn_inventory.yaml.erb' }
+
+      it 'expands template and loads file' do
+        ENV['SIE_ARN'] = 'echo'
+        ENV['SIC_ARN'] = 'charlie'
+
+        inventory.add_from_config(inventory_config_path, env: :test)
+
+        expect(inventory.valid_arn?(:sie, 'echo')).to be_truthy
+        expect(inventory.valid_arn?(:sic, 'charlie')).to be_truthy
+      end
+    end
   end
 
   describe '#empty?' do
