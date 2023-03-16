@@ -61,7 +61,7 @@ RSpec.describe Sisjwt::ArnInventory do
       end
     end
 
-    context 'ERB parsing' do
+    context 'with ERB parsing' do
       let(:inventory_config_path) { 'spec/support/fixtures/arn_inventory.yaml.erb' }
 
       it 'expands template and loads file' do
@@ -70,8 +70,8 @@ RSpec.describe Sisjwt::ArnInventory do
 
         inventory.add_from_config(inventory_config_path, env: :test)
 
-        expect(inventory.valid_arn?(:sie, 'echo')).to be_truthy
-        expect(inventory.valid_arn?(:sic, 'charlie')).to be_truthy
+        expect(inventory).to be_valid_arn(:sie, 'echo')
+        expect(inventory).to be_valid_arn(:sic, 'charlie')
       end
     end
   end
