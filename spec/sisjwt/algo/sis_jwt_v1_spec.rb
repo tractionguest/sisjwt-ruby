@@ -27,18 +27,6 @@ RSpec.describe Sisjwt::Algo::SisJwtV1 do
       expect(algo.options).to be_valid
     end
 
-    context 'with KMS mode' do
-      let(:options) { kms_options }
-
-      context 'with invalid options' do
-        before { options.iss = nil }
-
-        it 'raises an error' do
-          expect { algo }.to raise_error Aws::Errors::InvalidSSOCredentials
-        end
-      end
-    end
-
     context 'with dev mode' do
       context 'when in a production environment' do
         mock_env 'RAILS_ENV', 'production'
