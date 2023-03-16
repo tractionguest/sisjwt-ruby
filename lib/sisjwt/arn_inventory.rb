@@ -11,12 +11,10 @@ module Sisjwt
     # @param path [string]
     # @param env [string]
     def add_from_config(path, env: nil)
-      path = Pathname(path)
-      raise FileNotFoundError, path unless path.file?
+      expanded_file_contents = read_expand_erb_file(path)
+      config_file = YAML.safe_load(expanded_file_contents).with_indifferent_access
 
       env ||= ENV.fetch('RAILS_ENV', 'development')
-      config_file = YAML.safe_load(File.read(path)).with_indifferent_access
-
       unless config_file.key?(env)
         raise InventoryFileError, "Could not find requested environment (#{env}) in inventory file #{path}"
       end
@@ -45,6 +43,20 @@ module Sisjwt
       end
 
       nil
+    end
+
+    private
+
+    # Reads file given by path and treats it as an ERB template
+    # rending it and returning the contents that can then be
+    # parsed further (i.e. by YAML.safe_load)
+    def read_expand_erb_file(path)
+      path = Pathname(path)
+      raise FileNotFoundError, path unless path.file?
+
+      erb = ERB.new(path.read)
+      erb.filename = path.to_s
+      erb.result binding
     end
   end
 end
