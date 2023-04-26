@@ -215,7 +215,7 @@ RSpec.describe Sisjwt::SisJwt do
 
       it 'returns KMS verification context' do
         result = sis_jwt.verify(pseudo_token)
-        expect(result.headers).to be headers
+        expect(result.headers).to eq headers
         expect(result.payload).to be payload
       end
     end
