@@ -40,8 +40,8 @@ module Sisjwt
 
       errors.add(:base, 'Token is longer lived than allowed') if age > MAX_ALLOWED_AGE.to_i
       errors.add(:base, 'Token is expired') if expired?
-      errors.add(:iss, 'not on the approved list') unless allowed_iss.include?(iss)
-      errors.add(:aud, 'not on the approved list') unless allowed_aud.include?(aud)
+      errors.add(:iss, "#{iss.inspect} is not in the approved list") unless payload_allowed?(:iss)
+      errors.add(:aud, "#{aud.inspect} is not in the approved list") unless payload_allowed?(:aud)
 
       unless @options&.arn_inventory.blank?
         arn_inventory = @options&.arn_inventory
@@ -98,19 +98,21 @@ module Sisjwt
       mark_dirty!
     end
 
+    # @param aud [#to_s] A valid, case-insensitive audience for the token being
+    #   validated.
     def add_allowed_aud(aud)
-      return if aud.blank? || allowed_aud.include?(aud)
+      return if aud.blank? || allowed_aud.include?(aud.to_s)
 
-      allowed_aud << aud
-      allowed_aud.flatten!
+      allowed_aud << aud.to_s
       mark_dirty!
     end
 
+    # @param iss [#to_s] A valid, case-insensitive issuer for the token being
+    #   validated.
     def add_allowed_iss(iss)
-      return if iss.blank? || allowed_iss.include?(iss)
+      return if iss.blank? || allowed_iss.include?(iss.to_s)
 
-      allowed_iss << iss
-      allowed_iss.flatten!
+      allowed_iss << iss.to_s
       mark_dirty!
     end
 
@@ -125,10 +127,7 @@ module Sisjwt
       {
         headers: headers,
         payload: payload,
-        allowed: {
-          aud: allowed_aud,
-          iss: allowed_iss,
-        },
+        allowed: { aud: allowed_aud, iss: allowed_iss },
         valid: valid?,
         errors: errors,
       }
@@ -136,6 +135,11 @@ module Sisjwt
 
     def dev_lifetime
       { life_left: life_left, age: age, expired: expired? }
+    end
+
+    def payload_allowed?(payload_key)
+      val = send(payload_key)
+      send(:"allowed_#{payload_key}").any? { |allowed| allowed.casecmp?(val) }
     end
   end
 end

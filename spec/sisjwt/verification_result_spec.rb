@@ -75,24 +75,40 @@ RSpec.describe Sisjwt::VerificationResult do
   describe '#add_allowed_aud' do
     it 'changes allowed_aud' do
       expect { result.add_allowed_aud(:test) }.to \
-        change(result, :allowed_aud).from([]).to([:test])
+        change(result, :allowed_aud).from([]).to(['test'])
     end
 
     it 'is included in to_h' do
       expect { result.add_allowed_aud(:test) }.to \
-        change(result, :to_h).to(include(allowed: include(aud: [:test])))
+        change(result, :to_h).to(include(allowed: include(aud: ['test'])))
+    end
+
+    context 'with a mixed-case payload' do
+      let(:aud) { 'MIXED_case' }
+
+      before { result.add_allowed_aud(:mixed_case) }
+
+      it { expect(result.errors.full_messages_for(:aud)).to be_empty }
     end
   end
 
   describe '#add_allowed_iss' do
     it 'changes allowed_iss' do
       expect { result.add_allowed_iss(:test) }.to \
-        change(result, :allowed_iss).from([]).to([:test])
+        change(result, :allowed_iss).from([]).to(['test'])
     end
 
     it 'is included in to_h' do
       expect { result.add_allowed_iss(:test) }.to \
-        change(result, :to_h).to(include(allowed: include(iss: [:test])))
+        change(result, :to_h).to(include(allowed: include(iss: ['test'])))
+    end
+
+    context 'with a mixed-case payload' do
+      let(:iss) { 'MIXED_case' }
+
+      before { result.add_allowed_iss(:mixed_case) }
+
+      it { expect(result.errors.full_messages_for(:iss)).to be_empty }
     end
   end
 end
