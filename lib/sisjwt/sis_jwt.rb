@@ -35,7 +35,7 @@ module Sisjwt
     def verify(token)
       logger.debug "SISJWT-verify: #{token}"
       payload, headers = decode_jwt(token)
-      VerificationResult.new(headers, payload, options: options).tap do |ret|
+      new_result(headers, payload).tap do |ret|
         logger.debug("SISJWT-verifed: #{ret.inspect}")
       end
     rescue JWT::DecodeError => e
@@ -50,7 +50,7 @@ module Sisjwt
     def decode_jwt(token)
       JWT.decode(token, jwt_secret, true, { algorithm: jwt_alg }) do |headers, payload|
         if options.kms_configured?
-          find_jwt_key(token, headers, payload)
+          find_jwt_key(token, CaseInsensitiveHash.new(headers), payload)
         else
           logger.debug "SISJWT-verify-dev: #{token} DEV"
           jwt_secret
@@ -65,6 +65,11 @@ module Sisjwt
           "SISJWT-verify-kms1: #{token} KMS: #{kms_key_finder}; #{info.inspect}"
         end
       end
+    end
+
+    def new_result(headers, payload)
+      VerificationResult.new(CaseInsensitiveHash.new(headers), payload,
+                             options: options)
     end
 
     # Make sure that we tag the token with our issuer so that we can easily
