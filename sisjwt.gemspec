@@ -31,8 +31,8 @@ Gem::Specification.new do |spec|
   spec.executables << 'sisjwt' # spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
-  spec.add_dependency 'activemodel', '~> 6.0.5'
-  spec.add_dependency 'activesupport', '~> 6.0.5'
+  spec.add_dependency 'activemodel', '~> 6.1.7', '>= 6.1.7.3'
+  spec.add_dependency 'activesupport', '~> 6.1.7', '>= 6.1.7.3'
   spec.add_dependency 'aws-sdk-kms', '~> 1'
   spec.add_dependency 'jwt', '~> 2.6.0'
   spec.add_dependency 'zeitwerk', '~> 2.6'
