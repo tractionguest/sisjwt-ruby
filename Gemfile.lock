@@ -1,33 +1,32 @@
 PATH
   remote: .
   specs:
-    sisjwt (0.3.0)
-      activemodel (~> 6.1.7, >= 6.1.7.3)
-      activesupport (~> 6.1.7, >= 6.1.7.3)
+    sisjwt (0.4.0)
+      activemodel (~> 7.0.5)
+      activesupport (~> 7.0.5)
       aws-sdk-kms (~> 1)
-      jwt (~> 2.6.0)
-      zeitwerk (~> 2.6)
+      jwt
+      zeitwerk
 
 GEM
   remote: https://rubygems.org/
   specs:
-    activemodel (6.1.7.3)
-      activesupport (= 6.1.7.3)
-    activesupport (6.1.7.3)
+    activemodel (7.0.5)
+      activesupport (= 7.0.5)
+    activesupport (7.0.5)
       concurrent-ruby (~> 1.0, >= 1.0.2)
       i18n (>= 1.6, < 2)
       minitest (>= 5.1)
       tzinfo (~> 2.0)
-      zeitwerk (~> 2.3)
     ast (2.4.2)
     aws-eventstream (1.2.0)
-    aws-partitions (1.779.0)
-    aws-sdk-core (3.174.0)
+    aws-partitions (1.780.0)
+    aws-sdk-core (3.175.0)
       aws-eventstream (~> 1, >= 1.0.2)
       aws-partitions (~> 1, >= 1.651.0)
       aws-sigv4 (~> 1.5)
       jmespath (~> 1, >= 1.6.1)
-    aws-sdk-kms (1.66.0)
+    aws-sdk-kms (1.67.0)
       aws-sdk-core (~> 3, >= 3.174.0)
       aws-sigv4 (~> 1.1)
     aws-sigv4 (1.5.2)
@@ -64,7 +63,7 @@ GEM
     jaro_winkler (1.5.6)
     jmespath (1.6.2)
     json (2.6.3)
-    jwt (2.6.0)
+    jwt (2.7.1)
     kramdown (2.4.0)
       rexml
     kramdown-parser-gfm (1.1.0)
@@ -176,16 +175,16 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  guard-rspec (~> 4.7.3)
-  guard-rubocop (~> 1.5)
-  pry-byebug (~> 3.10)
-  rake (~> 13.0)
-  rspec (~> 3.0)
-  rubocop (~> 1.21)
-  rubocop-rspec (~> 2.18)
-  simplecov (~> 0.22)
+  guard-rspec
+  guard-rubocop
+  pry-byebug
+  rake
+  rspec
+  rubocop
+  rubocop-rspec
+  simplecov
   sisjwt!
-  solargraph (~> 0.48)
+  solargraph
 
 BUNDLED WITH
-   2.4.12
+   2.4.14
