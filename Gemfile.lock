@@ -1,9 +1,9 @@
 PATH
   remote: .
   specs:
-    sisjwt (0.3.0)
-      activemodel (~> 6.1.7, >= 6.1.7.3)
-      activesupport (~> 6.1.7, >= 6.1.7.3)
+    sisjwt (0.4.0)
+      activemodel (~> 7.0.5)
+      activesupport (~> 7.0.5)
       aws-sdk-kms (~> 1)
       jwt (~> 2.6.0)
       zeitwerk (~> 2.6)
@@ -11,14 +11,13 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    activemodel (6.1.7.3)
-      activesupport (= 6.1.7.3)
-    activesupport (6.1.7.3)
+    activemodel (7.0.5)
+      activesupport (= 7.0.5)
+    activesupport (7.0.5)
       concurrent-ruby (~> 1.0, >= 1.0.2)
       i18n (>= 1.6, < 2)
       minitest (>= 5.1)
       tzinfo (~> 2.0)
-      zeitwerk (~> 2.3)
     ast (2.4.2)
     aws-eventstream (1.2.0)
     aws-partitions (1.779.0)
@@ -188,4 +187,4 @@ DEPENDENCIES
   solargraph (~> 0.48)
 
 BUNDLED WITH
-   2.4.12
+   2.4.14
