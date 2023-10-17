@@ -38,9 +38,9 @@ module Sisjwt
       new_result(headers, payload).tap do |ret|
         logger.debug("SISJWT-verifed: #{ret.inspect}")
       end
-    rescue JWT::DecodeError => e
+    rescue JWT::DecodeError, KeyNotFoundError => e
       # We can rescue from this error and return a result
-      logger.error("[SISJWT-verify]: [#{e.class}]#{e}")
+      logger.error("[SISJWT-verify]: [#{e.class}] #{e}")
       VerificationResult.error(e.message)
     end
 
