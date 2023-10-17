@@ -118,11 +118,12 @@ module Sisjwt
         logger.debug("kms_verify message(#{message.size}b)>>#{message}<< signature>>" \
                      "#{signature.size}<< alg>>#{signing_algorithm}<< key_id>>#{verification_key_id}<<")
         params = build_kms_params(message: message, signature: signature,
-                                  key_id: verification_key_id,
-                                  signing_algorithm: signing_algorithm)
+                                  key_id: verification_key_id, signing_algorithm: signing_algorithm)
 
         kms_client.verify(params).signature_valid
         true
+      rescue Aws::KMS::Errors::NotFoundException => e
+        raise KeyNotFoundError, e
       rescue Aws::KMS::Errors::KMSInvalidSignatureException
         false
       end
