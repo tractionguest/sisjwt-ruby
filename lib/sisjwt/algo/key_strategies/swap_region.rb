@@ -7,7 +7,7 @@ module Sisjwt
       # this region, so try modifying the region-portion of the given key ID.
       class SwapRegion < KeyStrategies::Base
         def call(params)
-          swapped_key_id = swap_key_id(params[:key_id])
+          swapped_key_id = swap_region(params[:key_id])
           return nil unless swapped_key_id && swapped_key_id != params[:key_id]
 
           kms_client.verify(params.merge(key_id: swapped_key_id))
