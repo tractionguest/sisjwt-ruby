@@ -127,9 +127,9 @@ RSpec.describe Sisjwt::Algo::SisJwtV1 do
           algo.verify(data: data, signature: signature, verification_key: verification_key)
 
           expect(kms_double).to have_received(:verify).with(
-                                  key_id: key_id, message: data, message_type: 'RAW',
-                                  signature: signature, signing_algorithm: signing_algorithm
-                                )
+            key_id: key_id, message: data, message_type: 'RAW',
+            signature: signature, signing_algorithm: signing_algorithm
+          )
         end
       end
 

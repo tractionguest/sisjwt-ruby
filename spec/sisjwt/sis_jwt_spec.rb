@@ -224,7 +224,7 @@ RSpec.describe Sisjwt::SisJwt do
       let(:options) { kms_options }
       let(:headers) { { 'AWS_ALG' => 'alg!', 'kid' => 'kid!' } }
       let(:payload) { { 'data' => 'data' } }
-      let(:pseudo_token) { Sisjwt::SisJwt.new(Sisjwt::SisJwtOptions.defaults).encode({}) }
+      let(:pseudo_token) { described_class.new(Sisjwt::SisJwtOptions.defaults).encode({}) }
       let(:kms_double) { instance_double(Aws::KMS::Client) }
       let(:err) { Aws::KMS::Errors::NotFoundException.new(nil, 'unknown key') }
 
