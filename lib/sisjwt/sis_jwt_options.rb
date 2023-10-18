@@ -38,7 +38,7 @@ module Sisjwt
       def assign_env_options(opts)
         opts.aws_profile = Runtime.aws_profile
         opts.aws_region = ENV.fetch('AWS_REGION', 'us-west-2')
-        opts.key_id = ENV.fetch('SISJWT_KEY_ID', nil)
+        opts.key_id = ENV.fetch(KEY_ID_ENV_NAME, nil)
         opts.key_alg = ENV.fetch('SISJWT_KEY_ALG', 'RSASSA_PKCS1_V1_5_SHA_256')
         opts.iss = ENV.fetch('SISJWT_ISS', 'SISi')
         opts.aud = ENV.fetch('SISJWT_AUD', 'SISa')

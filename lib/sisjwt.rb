@@ -9,6 +9,7 @@ loader = Zeitwerk::Loader.for_gem
 loader.setup
 
 module Sisjwt
+  KEY_ID_ENV_NAME = 'SISJWT_KEY_ID'
   TOKEN_TYPE_DEV = 'SISKMSd'
   TOKEN_TYPE_V1 = 'SISKMS1.0'
 
