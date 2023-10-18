@@ -220,6 +220,25 @@ RSpec.describe Sisjwt::SisJwt do
       end
     end
 
+    context 'when AWS KMS is configured but the key cannot be found' do
+      let(:options) { kms_options }
+      let(:headers) { { 'AWS_ALG' => 'alg!', 'kid' => 'kid!' } }
+      let(:payload) { { 'data' => 'data' } }
+      let(:pseudo_token) { described_class.new(Sisjwt::SisJwtOptions.defaults).encode({}) }
+      let(:kms_double) { instance_double(Aws::KMS::Client) }
+      let(:err) { Aws::KMS::Errors::NotFoundException.new(nil, 'unknown key') }
+
+      before do
+        allow(Aws::KMS::Client).to receive(:new).and_return(kms_double)
+        allow(kms_double).to receive(:verify).and_raise(err)
+      end
+
+      it 'returns an error' do
+        result = sis_jwt.verify(pseudo_token)
+        expect(result.errors.full_messages).to include "unknown key; key_id=''"
+      end
+    end
+
     context 'when dev mode is configured' do
       let(:options) { dev_options }
       let(:token) { sis_jwt.encode(data) }

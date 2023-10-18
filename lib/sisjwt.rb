@@ -14,5 +14,6 @@ module Sisjwt
 
   Error = Class.new(StandardError)
   FileNotFoundError = Class.new(Error)
+  KeyNotFoundError = Class.new(Error)
   InventoryFileError = Class.new(Error)
 end

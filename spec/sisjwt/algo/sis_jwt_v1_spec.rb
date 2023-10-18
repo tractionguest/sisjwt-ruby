@@ -116,18 +116,32 @@ RSpec.describe Sisjwt::Algo::SisJwtV1 do
       let(:kms_double) { instance_double(Aws::KMS::Client) }
       let(:verify_result) { Struct.new(:signature_valid).new }
 
-      before do
-        allow(Aws::KMS::Client).to receive(:new).and_return(kms_double)
-        allow(kms_double).to receive(:verify).and_return(verify_result)
+      before { allow(Aws::KMS::Client).to receive(:new).and_return(kms_double) }
+
+      context 'when it finds the key' do
+        before do
+          allow(kms_double).to receive(:verify).and_return(verify_result)
+        end
+
+        it 'calls KMS' do
+          algo.verify(data: data, signature: signature, verification_key: verification_key)
+
+          expect(kms_double).to have_received(:verify).with(
+            key_id: key_id, message: data, message_type: 'RAW',
+            signature: signature, signing_algorithm: signing_algorithm
+          )
+        end
       end
 
-      it 'calls KMS' do
-        algo.verify(data: data, signature: signature, verification_key: verification_key)
+      context 'when it cannot finds the key' do
+        let(:err) { Aws::KMS::Errors::NotFoundException.new(nil, 'region name') }
 
-        expect(kms_double).to have_received(:verify).with(
-          key_id: key_id, message: data, message_type: 'RAW',
-          signature: signature, signing_algorithm: signing_algorithm
-        )
+        before { allow(kms_double).to receive(:verify).and_raise(err) }
+
+        it 'raises a KeyNotFoundError' do
+          expect { algo.verify(data: data, signature: signature, verification_key: verification_key) }.to \
+            raise_error(Sisjwt::KeyNotFoundError, "region name; key_id='#{key_id}'")
+        end
       end
     end
 
