@@ -235,7 +235,7 @@ RSpec.describe Sisjwt::SisJwt do
 
       it 'returns an error' do
         result = sis_jwt.verify(pseudo_token)
-        expect(result.errors.full_messages).to include 'unknown key'
+        expect(result.errors.full_messages).to include "unknown key; key_id=''"
       end
     end
 
