@@ -18,8 +18,8 @@ RSpec.describe Sisjwt::SisJwtOptions do
       it { expect(options.aws_region).to eq 'testToken' }
     end
 
-    context 'when SISJWT_KEY_ID=testToken' do
-      mock_env 'SISJWT_KEY_ID', 'testToken'
+    context "when #{Sisjwt::KEY_ID_ENV_NAME}=testToken" do
+      mock_env Sisjwt::KEY_ID_ENV_NAME, 'testToken'
       mock_kms configured: true
 
       it { expect(options.key_id).to eq 'testToken' }
@@ -82,8 +82,8 @@ RSpec.describe Sisjwt::SisJwtOptions do
         end
       end
 
-      context 'when SISJWT_KEY_ID is unset' do
-        mock_env 'SISJWT_KEY_ID', nil
+      context "when #{Sisjwt::KEY_ID_ENV_NAME} is unset" do
+        mock_env Sisjwt::KEY_ID_ENV_NAME, nil
         mock_kms configured: true
 
         it "key_id defaults to ''" do
