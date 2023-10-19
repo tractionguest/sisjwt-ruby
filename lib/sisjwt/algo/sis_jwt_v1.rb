@@ -122,8 +122,6 @@ module Sisjwt
 
         KmsVerify.new(kms_client).call(params).signature_valid
         true
-      rescue Aws::KMS::Errors::NotFoundException => e
-        raise KeyNotFoundError, "#{e}; key_id='#{params[:key_id]}'"
       rescue Aws::KMS::Errors::KMSInvalidSignatureException
         false
       end

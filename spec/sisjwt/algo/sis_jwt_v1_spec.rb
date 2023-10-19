@@ -140,7 +140,7 @@ RSpec.describe Sisjwt::Algo::SisJwtV1 do
 
         it 'raises a KeyNotFoundError' do
           expect { algo.verify(data: data, signature: signature, verification_key: verification_key) }.to \
-            raise_error(Sisjwt::KeyNotFoundError, "region name; key_id='#{key_id}'")
+            raise_error(Sisjwt::KeyNotFoundError, "key_id not found: '#{key_id}'")
         end
       end
     end

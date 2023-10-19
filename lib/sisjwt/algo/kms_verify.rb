@@ -22,7 +22,7 @@ module Sisjwt
       end
 
       def call(params)
-        iterate_strategies(params) || raise(KeyNotFoundError, params[:key_id])
+        iterate_strategies(params) || raise_key_error(params)
       end
 
       private
@@ -35,6 +35,10 @@ module Sisjwt
         klass.new(kms_client).call(params)
       rescue Aws::KMS::Errors::NotFoundException
         nil
+      end
+
+      def raise_key_error(params)
+        raise KeyNotFoundError, "key_id not found: '#{params[:key_id]}'"
       end
     end
   end
