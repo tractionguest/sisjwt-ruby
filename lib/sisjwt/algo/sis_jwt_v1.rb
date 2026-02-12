@@ -8,7 +8,9 @@ module Sisjwt
   module Algo
     # The custom JWT algorithm used to sign and verify tokens.
     class SisJwtV1
-      include ::JWT::JWA::SigningAlgorithm
+      # JWT 3.x requires custom algorithms to include this module.
+      # JWT 2.x does not have this module, so we only include it if available.
+      include ::JWT::JWA::SigningAlgorithm if defined?(::JWT::JWA::SigningAlgorithm)
 
       attr_reader :logger, :options
 
