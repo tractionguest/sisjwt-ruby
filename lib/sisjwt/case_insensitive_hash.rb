@@ -11,8 +11,8 @@ module Sisjwt
       freeze
     end
 
-    def fetch(key, *args, &blk)
-      super(@keys[normalize_key(key)], *args, &blk)
+    def fetch(key, *, &)
+      super(@keys[normalize_key(key)], *, &)
     end
 
     def [](key)

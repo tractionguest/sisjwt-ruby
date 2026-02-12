@@ -28,7 +28,7 @@ module Sisjwt
       private
 
       def iterate_strategies(params)
-        strategies.lazy.filter_map { execute(_1, params) }.first
+        strategies.lazy.filter_map { execute(it, params) }.first
       end
 
       def execute(klass, params)

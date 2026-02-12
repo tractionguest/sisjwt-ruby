@@ -38,7 +38,7 @@ RSpec.describe Sisjwt::SisJwt do
     subject(:sis_jwt) { described_class.new(options, logger: logger) }
 
     let(:options) { Sisjwt::SisJwtOptions.current }
-    let(:logger) { Logger.new('/dev/null') }
+    let(:logger) { Logger.new(File::NULL) }
 
     it 'assigns options and logger' do
       expect(sis_jwt.options).to be options

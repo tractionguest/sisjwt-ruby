@@ -18,13 +18,13 @@ RSpec.describe Sisjwt::ArnInventory do
 
       it 'loads inventory from SIE section' do
         sie_arns.each do |arn|
-          expect(inventory.valid_arn?(:sie, arn)).to be_truthy, "Expected arn '#{arn}' to be present"
+          expect(inventory).to be_valid_arn(:sie, arn), "Expected arn '#{arn}' to be present"
         end
       end
 
       it 'loads inventory from SIC section' do
         sic_arns.each do |arn|
-          expect(inventory.valid_arn?(:sic, arn)).to be_truthy, "Expected arn '#{arn}' to be present"
+          expect(inventory).to be_valid_arn(:sic, arn), "Expected arn '#{arn}' to be present"
         end
       end
 
@@ -50,13 +50,13 @@ RSpec.describe Sisjwt::ArnInventory do
 
       it 'loads inventory from SIE section' do
         sie_arns.each do |arn|
-          expect(inventory.valid_arn?(:sie, arn)).to be_truthy, "Expected arn '#{arn}' to be present"
+          expect(inventory).to be_valid_arn(:sie, arn), "Expected arn '#{arn}' to be present"
         end
       end
 
       it 'loads inventory from SIC section' do
         sic_arns.each do |arn|
-          expect(inventory.valid_arn?(:sic, arn)).to be_truthy, "Expected arn '#{arn}' to be present"
+          expect(inventory).to be_valid_arn(:sic, arn), "Expected arn '#{arn}' to be present"
         end
       end
     end
