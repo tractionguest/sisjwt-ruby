@@ -72,7 +72,7 @@ module Sisjwt
     end
 
     def iat
-      @ait.present? ? @iat : DateTime.now.to_f
+      @iat.present? ? @iat : DateTime.now.to_f
     end
 
     def exp

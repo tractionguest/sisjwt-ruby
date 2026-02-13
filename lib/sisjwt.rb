@@ -13,8 +13,15 @@ module Sisjwt
   TOKEN_TYPE_DEV = 'SISKMSd'
   TOKEN_TYPE_V1 = 'SISKMS1.0'
 
-  Error = Class.new(StandardError)
-  FileNotFoundError = Class.new(Error)
-  KeyNotFoundError = Class.new(Error)
-  InventoryFileError = Class.new(Error)
+  class Error < StandardError
+  end
+
+  class FileNotFoundError < Error
+  end
+
+  class KeyNotFoundError < Error
+  end
+
+  class InventoryFileError < Error
+  end
 end

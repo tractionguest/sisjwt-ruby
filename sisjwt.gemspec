@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.summary = 'Ruby implementation of Sign In Solutions JWT Standard'
   spec.description = spec.summary
   # spec.homepage = "TODO: Put your gem's website or public repo URL here."
-  spec.required_ruby_version = '>= 2.6.0'
+  spec.required_ruby_version = '>= 3.4'
 
   # spec.metadata["allowed_push_host"] = "TODO: Set to your gem server 'https://example.com'"
 
@@ -31,9 +31,9 @@ Gem::Specification.new do |spec|
   spec.executables << 'sisjwt' # spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
-  spec.add_dependency 'activemodel', '>= 6.1.7.3', '< 8.0'
-  spec.add_dependency 'activesupport', '>= 6.1.7.3', '< 8.0'
+  spec.add_dependency 'activemodel', '>= 6.1.7.3', '< 9.0'
+  spec.add_dependency 'activesupport', '>= 6.1.7.3', '< 9.0'
   spec.add_dependency 'aws-sdk-kms', '~> 1'
-  spec.add_dependency 'jwt', '~> 2.6.0'
+  spec.add_dependency 'jwt', '>= 2.6', '< 4.0'
   spec.add_dependency 'zeitwerk', '~> 2.6'
 end

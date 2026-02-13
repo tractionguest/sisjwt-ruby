@@ -4,15 +4,15 @@ module Sisjwt
   # Describes the runtime this library is being run in and the constants that
   # vary depending on its environment.
   class Runtime
-    TRUTHY_PATTERN = /^\s*(y|yes|t|true|1)\s*$/i.freeze
+    TRUTHY_PATTERN = /^\s*(y|yes|t|true|1)\s*$/i
 
     class << self
       def current
         @current ||= new
       end
 
-      def method_missing(*args)
-        current.send(*args)
+      def method_missing(*)
+        current.send(*)
       end
 
       def respond_to_missing?(name, include_private = false)
