@@ -58,7 +58,8 @@ module Sisjwt
 
         if options.kms_configured?
           logger.debug do
-            File.binwrite('token_intercepted.sig', signature)
+            file_name = 'token_intercepted.sig'
+            File.binwrite(file_name, signature)
             "[#{alg}] verify-kms2: Writing #{file_name}: #{signature.size} bytes"
           end
           kms_verify(data, signature, aws_alg, key_arn)
